@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePipelineStore } from '../../store/pipelineStore';
+import { Menu, RotateCcw, AlertTriangle } from 'lucide-react';
 import './Header.css';
 
 const Header: React.FC = () => {
-  const { currentPipeline, hasUnsavedChanges, updatePipelineName } = usePipelineStore();
+  const { currentPipeline, hasUnsavedChanges, updatePipelineName, resetCanvas } = usePipelineStore();
   const [isEditingName, setIsEditingName] = useState(false);
   const [pipelineName, setPipelineName] = useState(currentPipeline?.name || '');
+  const [showMenu, setShowMenu] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -44,9 +47,41 @@ const Header: React.FC = () => {
     }
   };
 
+  const handleResetCanvas = () => {
+    setShowMenu(false);
+    setShowResetModal(true);
+  };
+
+  const confirmReset = () => {
+    resetCanvas();
+    setShowResetModal(false);
+  };
+
   return (
     <header className="header">
       <div className="header-left">
+        <div className="hamburger-menu">
+          <button
+            className="hamburger-button"
+            onClick={() => setShowMenu(!showMenu)}
+            aria-label="Menu"
+          >
+            <Menu size={20} />
+          </button>
+
+          {showMenu && (
+            <>
+              <div className="menu-overlay" onClick={() => setShowMenu(false)} />
+              <div className="hamburger-dropdown">
+                <button className="menu-item" onClick={handleResetCanvas}>
+                  <RotateCcw size={16} />
+                  <span>Reset Canvas</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
         <div className="header-logo">
           <h1 className="logo-text">Flow</h1>
         </div>
@@ -86,8 +121,37 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-right">
-        {/* Clean header - no buttons needed */}
+        {/* Future: Theme toggle, Settings */}
       </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="modal-overlay" onClick={() => setShowResetModal(false)}>
+          <div className="reset-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="reset-modal-icon">
+              <AlertTriangle size={24} />
+            </div>
+            <h3 className="reset-modal-title">Reset Canvas?</h3>
+            <p className="reset-modal-description">
+              This will clear all stages, tasks, and connections from your canvas. This action cannot be undone.
+            </p>
+            <div className="reset-modal-actions">
+              <button
+                className="reset-modal-button cancel"
+                onClick={() => setShowResetModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="reset-modal-button confirm"
+                onClick={confirmReset}
+              >
+                Reset Canvas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };
