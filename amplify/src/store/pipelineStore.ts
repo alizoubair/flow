@@ -17,6 +17,7 @@ interface PipelineState {
   toggleStageExpand: (stageId: string) => void;
   removeNode: (nodeId: string) => void;
   updatePipelineName: (name: string) => void;
+  resetCanvas: () => void;
   markSaved: () => void;
 }
 
@@ -169,6 +170,14 @@ export const usePipelineStore = create<PipelineState>((set) => ({
         : null,
       hasUnsavedChanges: true,
     }));
+  },
+
+  resetCanvas: () => {
+    set({
+      nodes: [],
+      edges: [],
+      hasUnsavedChanges: true,
+    });
   },
 
   markSaved: () => {
