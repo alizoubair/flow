@@ -1,14 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePipelineStore } from '../../store/pipelineStore';
-import { Menu, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Menu, RotateCcw, AlertTriangle, Sun, Moon } from 'lucide-react';
 import './Header.css';
 
 const Header: React.FC = () => {
-  const { currentPipeline, hasUnsavedChanges, updatePipelineName, resetCanvas } = usePipelineStore();
+  const {
+    currentPipeline,
+    hasUnsavedChanges,
+    updatePipelineName,
+    resetCanvas,
+    theme,
+    canvasBackground,
+    canvasBackgroundColor,
+    setTheme,
+    setCanvasBackground,
+    setCanvasBackgroundColor
+  } = usePipelineStore();
   const [isEditingName, setIsEditingName] = useState(false);
   const [pipelineName, setPipelineName] = useState(currentPipeline?.name || '');
   const [showMenu, setShowMenu] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -18,14 +30,23 @@ const Header: React.FC = () => {
     }
   }, [isEditingName]);
 
+  // Update current time every 10 seconds to refresh save status
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 10000); // Update every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   const getSaveStatus = () => {
     if (hasUnsavedChanges) return 'Saving...';
-    if (!currentPipeline?.lastSaved) return 'All changes saved';
+    if (!currentPipeline?.lastSaved) return 'Not saved yet';
 
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - currentPipeline.lastSaved.getTime()) / 1000);
+    const diff = Math.floor((currentTime - currentPipeline.lastSaved.getTime()) / 1000);
 
-    if (diff < 10) return 'All changes saved';
+    if (diff < 10) return 'Just saved';
+    if (diff < 60) return `Saved ${diff}s ago`;
     if (diff < 3600) return `Saved ${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `Saved ${Math.floor(diff / 3600)}h ago`;
     return `Saved ${Math.floor(diff / 86400)}d ago`;
@@ -73,6 +94,78 @@ const Header: React.FC = () => {
             <>
               <div className="menu-overlay" onClick={() => setShowMenu(false)} />
               <div className="hamburger-dropdown">
+                {/* Canvas Background */}
+                <div className="menu-section">
+                  <div className="menu-section-label">Canvas</div>
+                  <div className="menu-group">
+                    <div className="menu-item-label">Background</div>
+                    <div className="option-group">
+                      {(['dots', 'lines', 'grid', 'none'] as const).map((bg) => (
+                        <button
+                          key={bg}
+                          className={`option-button ${canvasBackground === bg ? 'active' : ''}`}
+                          onClick={() => setCanvasBackground(bg)}
+                        >
+                          {bg.charAt(0).toUpperCase() + bg.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="menu-group">
+                    <div className="menu-item-label">Background Color</div>
+                    <div className="color-picker-grid">
+                      {[
+                        { color: '#F7F8FA', label: 'Light Gray' },
+                        { color: '#FFFFFF', label: 'White' },
+                        { color: '#FEF3C7', label: 'Light Yellow' },
+                        { color: '#DBEAFE', label: 'Light Blue' },
+                        { color: '#D1FAE5', label: 'Light Green' },
+                        { color: '#FCE7F3', label: 'Light Pink' },
+                        { color: '#E0E7FF', label: 'Light Indigo' },
+                        { color: '#1e1e1e', label: 'Dark' },
+                      ].map(({ color, label }) => (
+                        <button
+                          key={color}
+                          className={`color-option ${canvasBackgroundColor === color ? 'active' : ''}`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => setCanvasBackgroundColor(color)}
+                          title={label}
+                          aria-label={label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="menu-divider"></div>
+
+                {/* Theme */}
+                <div className="menu-section">
+                  <div className="menu-section-label">Appearance</div>
+                  <div className="menu-group">
+                    <div className="menu-item-label">Theme</div>
+                    <div className="option-group">
+                      <button
+                        className={`option-button ${theme === 'light' ? 'active' : ''}`}
+                        onClick={() => setTheme('light')}
+                      >
+                        <Sun size={14} />
+                        Light
+                      </button>
+                      <button
+                        className={`option-button ${theme === 'dark' ? 'active' : ''}`}
+                        onClick={() => setTheme('dark')}
+                      >
+                        <Moon size={14} />
+                        Dark
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="menu-divider"></div>
+
+                {/* Actions */}
                 <button className="menu-item" onClick={handleResetCanvas}>
                   <RotateCcw size={16} />
                   <span>Reset Canvas</span>
@@ -121,7 +214,7 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-right">
-        {/* Future: Theme toggle, Settings */}
+        {/* Empty - all controls in hamburger menu */}
       </div>
 
       {/* Reset Confirmation Modal */}
