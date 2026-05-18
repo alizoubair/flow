@@ -2,9 +2,13 @@ import { create } from 'zustand';
 import { Node, Edge } from 'reactflow';
 
 interface PipelineState {
-  currentPipeline: { name: string } | null;
+  currentPipeline: {
+    name: string;
+    lastSaved: Date | null;
+  } | null;
   nodes: Node[];
   edges: Edge[];
+  hasUnsavedChanges: boolean;
 
   // Actions
   addNode: (node: Node) => void;
@@ -12,16 +16,23 @@ interface PipelineState {
   addTaskNode: (parentId: string, taskData: any) => void;
   toggleStageExpand: (stageId: string) => void;
   removeNode: (nodeId: string) => void;
+  updatePipelineName: (name: string) => void;
+  markSaved: () => void;
 }
 
 export const usePipelineStore = create<PipelineState>((set) => ({
-  currentPipeline: { name: 'My Pipeline' },
+  currentPipeline: {
+    name: 'My Pipeline',
+    lastSaved: null,
+  },
   nodes: [],
   edges: [],
+  hasUnsavedChanges: false,
 
   addNode: (node) => {
     set((state) => ({
       nodes: [...state.nodes, node],
+      hasUnsavedChanges: true,
     }));
   },
 
@@ -30,6 +41,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
       nodes: state.nodes.map((node) =>
         node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
       ),
+      hasUnsavedChanges: true,
     }));
   },
 
@@ -64,6 +76,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
 
       return {
         nodes: [...updatedNodes, newTaskNode],
+        hasUnsavedChanges: true,
       };
     });
   },
@@ -137,13 +150,50 @@ export const usePipelineStore = create<PipelineState>((set) => ({
         return {
           nodes: updatedNodes,
           edges: filteredEdges,
+          hasUnsavedChanges: true,
         };
       }
 
       return {
         nodes: filteredNodes,
         edges: filteredEdges,
+        hasUnsavedChanges: true,
       };
     });
   },
+
+  updatePipelineName: (name) => {
+    set((state) => ({
+      currentPipeline: state.currentPipeline
+        ? { ...state.currentPipeline, name }
+        : null,
+      hasUnsavedChanges: true,
+    }));
+  },
+
+  markSaved: () => {
+    set((state) => ({
+      currentPipeline: state.currentPipeline
+        ? { ...state.currentPipeline, lastSaved: new Date() }
+        : null,
+      hasUnsavedChanges: false,
+    }));
+  },
 }));
+
+// Auto-save functionality
+let autoSaveTimeout: NodeJS.Timeout;
+usePipelineStore.subscribe((state, prevState) => {
+  if (state.hasUnsavedChanges && !prevState.hasUnsavedChanges) {
+    // Start auto-save timer when changes are detected
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+      // TODO: Call Lambda API to save
+      console.log('Auto-saving pipeline...', {
+        nodes: state.nodes,
+        edges: state.edges,
+      });
+      usePipelineStore.getState().markSaved();
+    }, 2000); // Save after 2 seconds of inactivity
+  }
+});

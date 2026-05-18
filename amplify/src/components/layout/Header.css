@@ -46,8 +46,42 @@
 
 .pipeline-info {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.save-status.saving {
+  color: #3b82f6;
+}
+
+.saving-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
 }
 
 .pipeline-name-display {
@@ -70,9 +104,23 @@
 }
 
 .pipeline-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #374151;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.pipeline-name.editable {
+  cursor: pointer;
+  padding: 6px 10px;
+  margin: -6px -10px;
+  border-radius: 7px;
+  transition: all 0.2s ease;
+}
+
+.pipeline-name.editable:hover {
+  background: #f3f4f6;
+  color: #3b82f6;
 }
 
 .edit-icon {
@@ -83,15 +131,17 @@
 }
 
 .pipeline-name-input {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: #374151;
-  border: 2px solid #3b82f6;
-  border-radius: 6px;
+  color: #111827;
+  letter-spacing: -0.02em;
+  border: 1.5px solid #3b82f6;
+  border-radius: 7px;
   padding: 6px 12px;
   outline: none;
   background: #ffffff;
   min-width: 250px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
 }
 
 .pipeline-name-input::placeholder {
@@ -115,8 +165,9 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
+
 
 .header-divider-vertical {
   width: 1px;
