@@ -1,19 +1,20 @@
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo, useState } from 'react';
 import ReactFlow, {
   Node,
   Background,
-  Controls,
   addEdge,
   Connection,
   useNodesState,
   useEdgesState,
   ReactFlowProvider,
   NodeTypes,
+  BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { usePipelineStore } from '../../store/pipelineStore';
 import StageNode from './nodes/StageNode';
 import TaskNode from './nodes/TaskNode';
+import { Plus, Minus, Maximize2, Undo2, Redo2 } from 'lucide-react';
 import './PipelineCanvas.css';
 
 
@@ -22,11 +23,41 @@ interface PipelineCanvasProps {
 }
 
 const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
-  const { nodes: storeNodes, edges: storeEdges, toggleStageExpand, addTaskNode, addNode, removeNode } = usePipelineStore();
+  const {
+    nodes: storeNodes,
+    edges: storeEdges,
+    canvasBackground,
+    canvasBackgroundColor,
+    toggleStageExpand,
+    addTaskNode,
+    addNode,
+    removeNode,
+    undo,
+    redo,
+    canUndo: checkCanUndo,
+    canRedo: checkCanRedo,
+  } = usePipelineStore();
   const [nodes, setNodesState, onNodesChange] = useNodesState(storeNodes);
   const [edges, setEdgesState, onEdgesChange] = useEdgesState(storeEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = React.useState<any>(null);
+  const [zoom, setZoom] = useState(100);
+
+  // Map canvas background setting to ReactFlow variant
+  const backgroundVariant = useMemo(() => {
+    switch (canvasBackground) {
+      case 'dots':
+        return BackgroundVariant.Dots;
+      case 'lines':
+        return BackgroundVariant.Lines;
+      case 'grid':
+        return BackgroundVariant.Cross;
+      case 'none':
+        return null;
+      default:
+        return BackgroundVariant.Dots;
+    }
+  }, [canvasBackground]);
 
   // Define custom node types
   const nodeTypes: NodeTypes = useMemo(
@@ -204,6 +235,49 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
     onNodeSelect(null);
   }, [onNodeSelect]);
 
+  const handleZoomIn = useCallback(() => {
+    if (reactFlowInstance) {
+      reactFlowInstance.zoomIn();
+    }
+  }, [reactFlowInstance]);
+
+  const handleZoomOut = useCallback(() => {
+    if (reactFlowInstance) {
+      reactFlowInstance.zoomOut();
+    }
+  }, [reactFlowInstance]);
+
+  const handleFitView = useCallback(() => {
+    if (reactFlowInstance) {
+      reactFlowInstance.fitView({ padding: 0.2 });
+    }
+  }, [reactFlowInstance]);
+
+  // Track zoom changes
+  const handleMove = useCallback((_event: any, viewport: any) => {
+    setZoom(Math.round(viewport.zoom * 100));
+  }, []);
+
+  // Keyboard shortcuts for undo/redo
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        if (checkCanUndo()) {
+          undo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.shiftKey && e.key === 'z' || e.key === 'y')) {
+        e.preventDefault();
+        if (checkCanRedo()) {
+          redo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, checkCanUndo, checkCanRedo]);
+
   return (
     <div className="pipeline-canvas" ref={reactFlowWrapper}>
       <ReactFlow
@@ -213,20 +287,82 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onInit={setReactFlowInstance}
+        onInit={(instance) => {
+          setReactFlowInstance(instance);
+          setZoom(100);
+        }}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onMove={handleMove}
         defaultViewport={{ x: 250, y: 100, zoom: 1 }}
         minZoom={0.2}
         maxZoom={2}
         fitView={false}
         nodeOrigin={[0, 0]}
+        style={{ backgroundColor: canvasBackgroundColor }}
       >
-        <Background />
-        <Controls showInteractive={false} />
+        {backgroundVariant && (
+          <Background
+            variant={backgroundVariant}
+            color={canvasBackgroundColor === '#1e1e1e' ? '#4a4a4a' : '#d1d5db'}
+            gap={16}
+            size={1}
+          />
+        )}
       </ReactFlow>
+
+      {/* Custom Controls */}
+      <div className="custom-controls">
+        <button
+          className="control-btn"
+          onClick={handleZoomOut}
+          data-tooltip="Zoom Out"
+          disabled={zoom <= 20}
+          aria-label="Zoom Out"
+        >
+          <Minus size={14} />
+        </button>
+        <div className="zoom-display">{zoom}%</div>
+        <button
+          className="control-btn"
+          onClick={handleZoomIn}
+          data-tooltip="Zoom In"
+          disabled={zoom >= 200}
+          aria-label="Zoom In"
+        >
+          <Plus size={14} />
+        </button>
+        <div className="control-divider"></div>
+        <button
+          className="control-btn"
+          onClick={handleFitView}
+          data-tooltip="Fit View"
+          aria-label="Fit View"
+        >
+          <Maximize2 size={14} />
+        </button>
+        <div className="control-divider"></div>
+        <button
+          className="control-btn"
+          onClick={undo}
+          data-tooltip="Undo (Ctrl+Z)"
+          disabled={!checkCanUndo()}
+          aria-label="Undo"
+        >
+          <Undo2 size={14} />
+        </button>
+        <button
+          className="control-btn"
+          onClick={redo}
+          data-tooltip="Redo (Ctrl+Y)"
+          disabled={!checkCanRedo()}
+          aria-label="Redo"
+        >
+          <Redo2 size={14} />
+        </button>
+      </div>
     </div>
   );
 };
