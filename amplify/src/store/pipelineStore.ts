@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { Node, Edge } from 'reactflow';
 
+export type Theme = 'light' | 'dark';
+export type CanvasBackground = 'dots' | 'lines' | 'grid' | 'none';
+
+interface HistoryState {
+  nodes: Node[];
+  edges: Edge[];
+}
+
 interface PipelineState {
   currentPipeline: {
     name: string;
@@ -9,6 +17,13 @@ interface PipelineState {
   nodes: Node[];
   edges: Edge[];
   hasUnsavedChanges: boolean;
+  theme: Theme;
+  canvasBackground: CanvasBackground;
+  canvasBackgroundColor: string;
+
+  // History for undo/redo
+  history: HistoryState[];
+  historyIndex: number;
 
   // Actions
   addNode: (node: Node) => void;
@@ -18,10 +33,32 @@ interface PipelineState {
   removeNode: (nodeId: string) => void;
   updatePipelineName: (name: string) => void;
   resetCanvas: () => void;
+  setTheme: (theme: Theme) => void;
+  setCanvasBackground: (background: CanvasBackground) => void;
+  setCanvasBackgroundColor: (color: string) => void;
   markSaved: () => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
 }
 
-export const usePipelineStore = create<PipelineState>((set) => ({
+// Helper function to save state to history
+const saveToHistory = (state: PipelineState, newNodes: Node[], newEdges: Edge[]) => {
+  const currentState = { nodes: newNodes, edges: newEdges };
+  const newHistory = state.history.slice(0, state.historyIndex + 1);
+  newHistory.push(currentState);
+
+  // Limit history to 50 states
+  if (newHistory.length > 50) {
+    newHistory.shift();
+    return { history: newHistory, historyIndex: newHistory.length - 1 };
+  }
+
+  return { history: newHistory, historyIndex: newHistory.length - 1 };
+};
+
+export const usePipelineStore = create<PipelineState>((set, get) => ({
   currentPipeline: {
     name: 'My Pipeline',
     lastSaved: null,
@@ -29,21 +66,34 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   nodes: [],
   edges: [],
   hasUnsavedChanges: false,
+  theme: 'light',
+  canvasBackground: 'dots',
+  canvasBackgroundColor: '#F7F8FA',
+  history: [{ nodes: [], edges: [] }],
+  historyIndex: 0,
 
   addNode: (node) => {
-    set((state) => ({
-      nodes: [...state.nodes, node],
-      hasUnsavedChanges: true,
-    }));
+    set((state) => {
+      const newNodes = [...state.nodes, node];
+      return {
+        nodes: newNodes,
+        hasUnsavedChanges: true,
+        ...saveToHistory(state, newNodes, state.edges),
+      };
+    });
   },
 
   updateNode: (nodeId, data) => {
-    set((state) => ({
-      nodes: state.nodes.map((node) =>
+    set((state) => {
+      const newNodes = state.nodes.map((node) =>
         node.id === nodeId ? { ...node, data: { ...node.data, ...data } } : node
-      ),
-      hasUnsavedChanges: true,
-    }));
+      );
+      return {
+        nodes: newNodes,
+        hasUnsavedChanges: true,
+        ...saveToHistory(state, newNodes, state.edges),
+      };
+    });
   },
 
   addTaskNode: (parentId, taskData) => {
@@ -75,9 +125,11 @@ export const usePipelineStore = create<PipelineState>((set) => ({
           : node
       );
 
+      const newNodes = [...updatedNodes, newTaskNode];
       return {
-        nodes: [...updatedNodes, newTaskNode],
+        nodes: newNodes,
         hasUnsavedChanges: true,
+        ...saveToHistory(state, newNodes, state.edges),
       };
     });
   },
@@ -152,6 +204,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
           nodes: updatedNodes,
           edges: filteredEdges,
           hasUnsavedChanges: true,
+          ...saveToHistory(state, updatedNodes, filteredEdges),
         };
       }
 
@@ -159,6 +212,7 @@ export const usePipelineStore = create<PipelineState>((set) => ({
         nodes: filteredNodes,
         edges: filteredEdges,
         hasUnsavedChanges: true,
+        ...saveToHistory(state, filteredNodes, filteredEdges),
       };
     });
   },
@@ -173,11 +227,36 @@ export const usePipelineStore = create<PipelineState>((set) => ({
   },
 
   resetCanvas: () => {
-    set({
+    set((state) => ({
       nodes: [],
       edges: [],
       hasUnsavedChanges: true,
-    });
+      ...saveToHistory(state, [], []),
+    }));
+  },
+
+  setTheme: (theme) => {
+    set({ theme });
+    // Apply theme to document root and body
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
+
+    // Update canvas background color when switching themes
+    const currentBgColor = usePipelineStore.getState().canvasBackgroundColor;
+    // If user hasn't customized the background color (still default light gray)
+    if (currentBgColor === '#F7F8FA' && theme === 'dark') {
+      set({ canvasBackgroundColor: '#1e1e1e' });
+    } else if (currentBgColor === '#1e1e1e' && theme === 'light') {
+      set({ canvasBackgroundColor: '#F7F8FA' });
+    }
+  },
+
+  setCanvasBackground: (background) => {
+    set({ canvasBackground: background });
+  },
+
+  setCanvasBackgroundColor: (color) => {
+    set({ canvasBackgroundColor: color });
   },
 
   markSaved: () => {
@@ -187,6 +266,46 @@ export const usePipelineStore = create<PipelineState>((set) => ({
         : null,
       hasUnsavedChanges: false,
     }));
+  },
+
+  undo: () => {
+    set((state) => {
+      if (state.historyIndex > 0) {
+        const newIndex = state.historyIndex - 1;
+        const previousState = state.history[newIndex];
+        return {
+          nodes: previousState.nodes,
+          edges: previousState.edges,
+          historyIndex: newIndex,
+          hasUnsavedChanges: true,
+        };
+      }
+      return state;
+    });
+  },
+
+  redo: () => {
+    set((state) => {
+      if (state.historyIndex < state.history.length - 1) {
+        const newIndex = state.historyIndex + 1;
+        const nextState = state.history[newIndex];
+        return {
+          nodes: nextState.nodes,
+          edges: nextState.edges,
+          historyIndex: newIndex,
+          hasUnsavedChanges: true,
+        };
+      }
+      return state;
+    });
+  },
+
+  canUndo: () => {
+    return get().historyIndex > 0;
+  },
+
+  canRedo: () => {
+    return get().historyIndex < get().history.length - 1;
   },
 }));
 
