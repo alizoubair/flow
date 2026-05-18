@@ -22,6 +22,22 @@
   border-width: 2px;
 }
 
+body.dark-theme .stage-node {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .stage-node:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  border-color: #60a5fa;
+}
+
+body.dark-theme .stage-node.selected {
+  box-shadow: 0 4px 20px rgba(96, 165, 250, 0.3);
+  border-color: #60a5fa;
+}
+
 .stage-node-content {
   position: relative;
   padding: 16px;
@@ -78,6 +94,14 @@
   word-wrap: break-word;
 }
 
+body.dark-theme .stage-node-type {
+  color: #b0b0b0;
+}
+
+body.dark-theme .stage-node-name {
+  color: #e0e0e0;
+}
+
 .stage-node-footer {
   margin-top: 12px;
   padding-top: 12px;
@@ -89,6 +113,14 @@
   font-size: 12px;
   font-weight: 500;
   color: #9ca3af;
+}
+
+body.dark-theme .stage-node-footer {
+  border-top-color: #3a3a3a;
+}
+
+body.dark-theme .stage-task-count {
+  color: #b0b0b0;
 }
 
 .stage-handle {
@@ -124,6 +156,15 @@
 .stage-toggle-btn:hover {
   background: #f3f4f6;
   color: #374151;
+}
+
+body.dark-theme .stage-toggle-btn {
+  color: #b0b0b0;
+}
+
+body.dark-theme .stage-toggle-btn:hover {
+  background: #3a3a3a;
+  color: #e0e0e0;
 }
 
 .stage-node.collapsed {

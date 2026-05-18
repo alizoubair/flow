@@ -15,6 +15,12 @@
   flex-direction: column;
   pointer-events: auto;
   overflow: hidden;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+body.dark-theme .config-panel {
+  background: #2a2a2a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.3);
 }
 
 /* Hide config panel when viewport is too narrow */
@@ -57,9 +63,21 @@
   line-height: 1.5;
 }
 
+body.dark-theme .placeholder-title {
+  color: #e0e0e0;
+}
+
+body.dark-theme .placeholder-subtitle {
+  color: #b0b0b0;
+}
+
 .config-header {
   padding: 20px;
   border-bottom: 1px solid #f3f4f6;
+}
+
+body.dark-theme .config-header {
+  border-bottom-color: #3a3a3a;
 }
 
 .config-node-info {
@@ -93,11 +111,23 @@
   color: #9ca3af;
 }
 
+body.dark-theme .config-node-info h3 {
+  color: #e0e0e0;
+}
+
+body.dark-theme .config-node-type {
+  color: #b0b0b0;
+}
+
 .config-tabs {
   display: flex;
   border-bottom: 1px solid #f3f4f6;
   padding: 0 20px;
   gap: 4px;
+}
+
+body.dark-theme .config-tabs {
+  border-bottom-color: #3a3a3a;
 }
 
 .tab {
@@ -119,8 +149,21 @@
 }
 
 .tab.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: #1e1e1e;
+  border-bottom-color: #1e1e1e;
+}
+
+body.dark-theme .tab {
+  color: #b0b0b0;
+}
+
+body.dark-theme .tab:hover {
+  color: #e0e0e0;
+}
+
+body.dark-theme .tab.active {
+  color: #e0e0e0;
+  border-bottom-color: #e0e0e0;
 }
 
 .config-content {
@@ -169,6 +212,10 @@
   margin-bottom: 8px;
 }
 
+body.dark-theme .config-section label {
+  color: #e0e0e0;
+}
+
 .config-section input[type="text"],
 .config-section input[type="number"],
 .config-section select,
@@ -191,8 +238,8 @@
 .config-section select:focus,
 .config-section textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #1e1e1e;
+  box-shadow: 0 0 0 3px rgba(30, 30, 30, 0.1);
 }
 
 .config-section input[type="text"]:disabled,
@@ -200,6 +247,29 @@
   background: #f9fafb;
   color: #9ca3af;
   cursor: not-allowed;
+}
+
+body.dark-theme .config-section input[type="text"],
+body.dark-theme .config-section input[type="number"],
+body.dark-theme .config-section select,
+body.dark-theme .config-section textarea {
+  background: #1e1e1e;
+  border-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+body.dark-theme .config-section input[type="text"]:focus,
+body.dark-theme .config-section input[type="number"]:focus,
+body.dark-theme .config-section select:focus,
+body.dark-theme .config-section textarea:focus {
+  border-color: #e0e0e0;
+  box-shadow: 0 0 0 3px rgba(224, 224, 224, 0.15);
+}
+
+body.dark-theme .config-section input[type="text"]:disabled,
+body.dark-theme .config-section input[type="number"]:disabled {
+  background: #2a2a2a;
+  color: #6b6b6b;
 }
 
 .config-section textarea {
@@ -232,19 +302,30 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 14px;
-  background: #3b82f6;
+  background: #1e1e1e;
   color: #ffffff;
   border: none;
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
   width: 100%;
 }
 
 .add-task-btn:hover {
-  background: #2563eb;
+  background: #2a2a2a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+body.dark-theme .add-task-btn {
+  background: #e0e0e0;
+  color: #1e1e1e;
+}
+
+body.dark-theme .add-task-btn:hover {
+  background: #f0f0f0;
 }
 
 .tasks-empty {
@@ -292,18 +373,38 @@
   box-sizing: border-box;
 }
 
+body.dark-theme .task-item {
+  background: #1e1e1e;
+  border-color: #4a4a4a;
+}
+
+body.dark-theme .task-item:hover {
+  border-color: #5a5a5a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-theme .task-item-header {
+  background: #2a2a2a;
+  border-bottom-color: #4a4a4a;
+}
+
 .task-order {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: #3b82f6;
+  background: #1e1e1e;
   color: #ffffff;
   border-radius: 50%;
   font-size: 12px;
   font-weight: 600;
   flex-shrink: 0;
+}
+
+body.dark-theme .task-order {
+  background: #e0e0e0;
+  color: #1e1e1e;
 }
 
 .task-name-input {
@@ -322,6 +423,16 @@
 .task-name-input:focus {
   outline: none;
   border-color: #3b82f6;
+}
+
+body.dark-theme .task-name-input {
+  background: #1e1e1e;
+  border-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+body.dark-theme .task-name-input:focus {
+  border-color: #e0e0e0;
 }
 
 .task-action-btn {
@@ -394,8 +505,25 @@
 .config-section-compact select:focus,
 .config-section-compact textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #1e1e1e;
+  box-shadow: 0 0 0 3px rgba(30, 30, 30, 0.1);
+}
+
+body.dark-theme .config-section-compact label {
+  color: #b0b0b0;
+}
+
+body.dark-theme .config-section-compact select,
+body.dark-theme .config-section-compact textarea {
+  background: #1e1e1e;
+  border-color: #4a4a4a;
+  color: #e0e0e0;
+}
+
+body.dark-theme .config-section-compact select:focus,
+body.dark-theme .config-section-compact textarea:focus {
+  border-color: #e0e0e0;
+  box-shadow: 0 0 0 3px rgba(224, 224, 224, 0.15);
 }
 
 /* Config Footer */
@@ -407,6 +535,11 @@
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
+}
+
+body.dark-theme .config-footer {
+  background: #2a2a2a;
+  border-top-color: #3a3a3a;
 }
 
 .config-btn {
@@ -431,15 +564,38 @@
   border-color: #d1d5db;
 }
 
+body.dark-theme .cancel-btn {
+  color: #b0b0b0;
+  border-color: #4a4a4a;
+}
+
+body.dark-theme .cancel-btn:hover {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #5a5a5a;
+}
+
 .save-btn {
-  background: #3b82f6;
+  background: #1e1e1e;
   color: #ffffff;
 }
 
 .save-btn:hover {
-  background: #2563eb;
+  background: #2a2a2a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .save-btn:active {
-  background: #1d4ed8;
+  background: #1e1e1e;
+  transform: translateY(0);
+}
+
+body.dark-theme .save-btn {
+  background: #e0e0e0;
+  color: #1e1e1e;
+}
+
+body.dark-theme .save-btn:hover {
+  background: #f0f0f0;
 }
