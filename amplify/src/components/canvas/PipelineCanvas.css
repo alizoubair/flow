@@ -4,7 +4,6 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
-  background: #F7F8FA;
   position: relative;
   z-index: 1;
 }
@@ -27,6 +26,15 @@
   transform: scale(1.2);
 }
 
+body.dark-theme .react-flow__handle {
+  background: #2a2a2a !important;
+  border-color: #60a5fa !important;
+}
+
+body.dark-theme .react-flow__handle:hover {
+  background: #60a5fa !important;
+}
+
 .react-flow__edge-path {
   stroke: #9ca3af !important;
   stroke-width: 2 !important;
@@ -37,61 +45,179 @@
   stroke-width: 2.5 !important;
 }
 
-.react-flow__controls {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1) !important;
-  border: none !important;
-  border-radius: 8px !important;
-  overflow: hidden !important;
-  position: fixed !important;
-  left: 20px !important;
-  bottom: 20px !important;
-  top: auto !important;
-  z-index: 10 !important;
-  transition: all 0.3s ease !important;
-  display: flex !important;
-  flex-direction: row !important;
-  width: 180px !important;
-  height: 32px !important;
-  background: #ffffff !important;
-  box-sizing: border-box !important;
-  padding: 0 !important;
-  margin: 0 !important;
+body.dark-theme .react-flow__edge-path {
+  stroke: #6b6b6b !important;
 }
 
-/* Adjust controls position when sidebar is hidden */
+body.dark-theme .react-flow__edge.selected .react-flow__edge-path {
+  stroke: #60a5fa !important;
+}
+
+/* Custom Controls */
+.custom-controls {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 4px;
+  z-index: 10;
+  overflow: visible;
+  transition: all 0.2s ease;
+}
+
+body.dark-theme .custom-controls {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.control-btn {
+  height: 32px;
+  width: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #6b6b6b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  outline: none;
+  position: relative;
+  border-radius: 4px;
+}
+
+/* Custom tooltip */
+.control-btn[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: #1e1e1e;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 6px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 10000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.control-btn[data-tooltip]::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 3px solid transparent;
+  border-top-color: #1e1e1e;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  z-index: 10000;
+}
+
+.control-btn[data-tooltip]:hover:not(:disabled)::before,
+.control-btn[data-tooltip]:hover:not(:disabled)::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.dark-theme .control-btn[data-tooltip]::before {
+  background: #f5f5f5;
+  color: #1e1e1e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme .control-btn[data-tooltip]::after {
+  border-top-color: #f5f5f5;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #1e1e1e;
+}
+
+.control-btn:focus:not(:disabled) {
+  background: #f5f5f5;
+  color: #1e1e1e;
+}
+
+.control-btn:active:not(:disabled) {
+  background: #e5e5e5;
+  color: #1e1e1e;
+}
+
+.control-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+body.dark-theme .control-btn {
+  color: #b0b0b0;
+}
+
+body.dark-theme .control-btn:hover:not(:disabled) {
+  background: #3a3a3a;
+  color: #e0e0e0;
+}
+
+body.dark-theme .control-btn:focus:not(:disabled) {
+  background: #3a3a3a;
+  color: #e0e0e0;
+}
+
+body.dark-theme .control-btn:active:not(:disabled) {
+  background: #4a4a4a;
+  color: #e0e0e0;
+}
+
+.zoom-display {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e1e1e;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+body.dark-theme .zoom-display {
+  color: #e0e0e0;
+}
+
+.control-divider {
+  width: 1px;
+  height: 20px;
+  background: #d4d4d4;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+body.dark-theme .control-divider {
+  background: #3a3a3a;
+}
+
 @media (max-width: 900px) {
-  .react-flow__controls {
-    left: 20px !important;
+  .custom-controls {
+    left: 20px;
   }
-}
-
-.react-flow__controls-button {
-  background: transparent !important;
-  border: none !important;
-  border-right: 1px solid #e5e7eb !important;
-  transition: all 0.15s ease !important;
-  flex: 1 !important;
-  height: 32px !important;
-  width: auto !important;
-  padding: 0 !important;
-  min-width: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.react-flow__controls-button svg {
-  width: 13px !important;
-  height: 13px !important;
-  color: #6b7280 !important;
-}
-
-.react-flow__controls-button:hover {
-  background: #f9fafb !important;
-}
-
-.react-flow__controls-button:last-child {
-  border-right: none !important;
 }
 
 .react-flow__minimap {
@@ -106,6 +232,12 @@
   transition: margin-right 0.3s ease !important;
 }
 
+body.dark-theme .react-flow__minimap {
+  border-color: #3a3a3a !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  background: #2a2a2a !important;
+}
+
 /* Adjust minimap position when config panel is hidden */
 @media (max-width: 900px) {
   .react-flow__minimap {
@@ -113,9 +245,6 @@
   }
 }
 
-.react-flow__background {
-  background-color: #F7F8FA !important;
-}
 
 .react-flow__attribution {
   display: none !important;
