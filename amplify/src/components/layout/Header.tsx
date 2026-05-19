@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePipelineStore } from '../../store/pipelineStore';
-import { Menu, RotateCcw, AlertTriangle, Sun, Moon } from 'lucide-react';
+import { Menu, RotateCcw, AlertTriangle, Sun, Moon, User, LogOut, LogIn, UserPlus } from 'lucide-react';
 import './Header.css';
 
 const Header: React.FC = () => {
+  const navigate = useNavigate();
   const {
     currentPipeline,
     hasUnsavedChanges,
@@ -20,8 +22,24 @@ const Header: React.FC = () => {
   const [pipelineName, setPipelineName] = useState(currentPipeline?.name || '');
   const [showMenu, setShowMenu] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Get user from localStorage
+  const getUserFromStorage = () => {
+    const userStr = localStorage.getItem('flow-user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const [user, setUser] = useState(getUserFromStorage());
 
   useEffect(() => {
     if (isEditingName && inputRef.current) {
@@ -76,6 +94,23 @@ const Header: React.FC = () => {
   const confirmReset = () => {
     resetCanvas();
     setShowResetModal(false);
+  };
+
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('flow-user');
+    localStorage.removeItem('flow-access-token');
+    localStorage.removeItem('flow-refresh-token');
+    localStorage.removeItem('flow-autosave');
+
+    // Clear pipeline state
+    resetCanvas();
+
+    // Close profile menu
+    setShowProfileMenu(false);
+
+    // Navigate to landing page
+    navigate('/');
   };
 
   return (
@@ -170,6 +205,26 @@ const Header: React.FC = () => {
                   <RotateCcw size={16} />
                   <span>Reset Canvas</span>
                 </button>
+
+                {/* Auth buttons - Show if not logged in */}
+                {!user && (
+                  <>
+                    <div className="menu-divider"></div>
+                    <div className="menu-section">
+                      <div className="menu-section-label">Account</div>
+                      <div className="auth-button-group">
+                        <button className="auth-group-btn secondary" onClick={() => { setShowMenu(false); navigate('/login'); }}>
+                          <LogIn size={16} />
+                          <span>Sign In</span>
+                        </button>
+                        <button className="auth-group-btn primary" onClick={() => { setShowMenu(false); navigate('/signup'); }}>
+                          <UserPlus size={16} />
+                          <span>Sign Up</span>
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </>
           )}
@@ -214,7 +269,52 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-right">
-        {/* Empty - all controls in hamburger menu */}
+        {/* Profile Menu - Only show if user is logged in */}
+        {user && (
+          <div className="profile-menu">
+            <button
+              className="profile-button"
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-label="Profile menu"
+            >
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="profile-avatar" />
+              ) : (
+                <div className="profile-avatar-placeholder">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </button>
+
+            {showProfileMenu && (
+              <>
+                <div className="menu-overlay" onClick={() => setShowProfileMenu(false)} />
+                <div className="profile-dropdown">
+                  <div className="profile-dropdown-header">
+                    <div className="profile-avatar-large">
+                      {user.avatar ? (
+                        <img src={user.avatar} alt={user.name} />
+                      ) : (
+                        <span>{user.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="profile-info">
+                      <div className="profile-name">{user.name}</div>
+                      <div className="profile-email">{user.email}</div>
+                    </div>
+                  </div>
+
+                  <div className="menu-divider"></div>
+
+                  <button className="menu-item" onClick={handleLogout}>
+                    <LogOut size={16} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Reset Confirmation Modal */}
