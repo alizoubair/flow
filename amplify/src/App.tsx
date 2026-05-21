@@ -1,23 +1,22 @@
-import { useState } from 'react';
-import PipelineCanvas from './components/canvas/PipelineCanvas';
-import Sidebar from './components/layout/Sidebar';
-import Header from './components/layout/Header';
-import ConfigPanel from './components/panels/ConfigPanel';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import CanvasPage from './pages/CanvasPage';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import './App.css';
-import { Node } from 'reactflow';
 
 function App() {
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
-
   return (
-    <div className="app">
-      <Header />
-      <div className="app-content">
-        <Sidebar />
-        <PipelineCanvas onNodeSelect={setSelectedNode} />
-        <ConfigPanel selectedNode={selectedNode} />
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/canvas" element={<CanvasPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+      </Routes>
+    </Router>
   );
 }
 
