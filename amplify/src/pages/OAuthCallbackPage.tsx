@@ -18,7 +18,7 @@ const OAuthCallbackPage: React.FC = () => {
 
     authService.handleOAuthCallback(params)
       .then(() => {
-        navigate('/canvas', { replace: true });
+        navigate('/pipelines/new', { replace: true });
       })
       .catch((err: Error) => {
         setError(err.message || 'Sign-in failed. Please try again.');
