@@ -1,3 +1,5 @@
+import { PipelineResponse } from '../types/pipeline';
+
 /**
  * API Configuration
  * Update API_BASE_URL with your API Gateway endpoint after deployment
@@ -62,18 +64,6 @@ async function apiRequest<T>(
     }
     throw new ApiError('Network error. Please check your connection.', 0);
   }
-}
-
-/**
- * Pipeline API responses
- */
-export interface PipelineResponse {
-  id: string;
-  name: string;
-  nodes: any[];
-  edges: any[];
-  created_at: string;
-  updated_at: string;
 }
 
 /**
