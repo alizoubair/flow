@@ -8,7 +8,7 @@ const LandingPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCreateNew = () => {
-    navigate('/pipelines/new');
+    navigate('/pipelines');
   };
 
   const handleLoadFile = () => {
@@ -37,7 +37,7 @@ const LandingPage: React.FC = () => {
         localStorage.setItem('flow-imported-pipeline', content);
 
         // Navigate to canvas
-        navigate('/pipelines/new');
+        navigate('/pipelines');
       } catch (error) {
         alert('Failed to load file. Please ensure it is a valid Flow pipeline file.');
         console.error('Error loading file:', error);

@@ -18,7 +18,7 @@ const LoginPage: React.FC = () => {
 
     try {
       await authService.login({ email, password });
-      navigate('/pipelines/new');
+      navigate('/pipelines');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
