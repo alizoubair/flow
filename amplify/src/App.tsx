@@ -11,8 +11,8 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/pipelines" element={<CanvasPage />} />
-        <Route path="/pipelines/:pipelineId" element={<CanvasPage />} />
+        <Route path="/canvas" element={<CanvasPage />} />
+        <Route path="/canvas/pipelines/:pipelineId" element={<CanvasPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
