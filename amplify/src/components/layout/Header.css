@@ -1515,7 +1515,7 @@ body.dark-theme .profile-email {
 .header-auth-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .header-auth-link {
@@ -1545,7 +1545,10 @@ body.dark-theme .header-auth-link:hover {
 }
 
 .header-auth-btn {
-  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
   background: #1e1e1e;
   color: #ffffff;
   border: 1.5px solid #1e1e1e;
@@ -1554,6 +1557,24 @@ body.dark-theme .header-auth-link:hover {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+
+.header-auth-btn.secondary {
+  background: transparent;
+  color: #1e1e1e;
+  border-color: #d4d4d4;
+  font-weight: 500;
+}
+
+.header-auth-btn.secondary:hover {
+  background: #f3f4f6;
+  border-color: #b0b0b0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.header-auth-btn.primary {
+  /* Uses default styles above */
 }
 
 .header-auth-btn:hover {
@@ -1571,6 +1592,17 @@ body.dark-theme .header-auth-btn {
   background: #e0e0e0;
   color: #1e1e1e;
   border-color: #e0e0e0;
+}
+
+body.dark-theme .header-auth-btn.secondary {
+  background: transparent;
+  color: #e0e0e0;
+  border-color: #3a3a3a;
+}
+
+body.dark-theme .header-auth-btn.secondary:hover {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
 }
 
 body.dark-theme .header-auth-btn:hover {

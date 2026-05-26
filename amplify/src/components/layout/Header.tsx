@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelineStore } from '../../store/pipelineStore';
 import { pipelineApi } from '../../services/api';
 import { authService } from '../../services/auth';
@@ -12,6 +12,7 @@ import './Header.css';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { pipelineId } = useParams<{ pipelineId: string }>();
   const {
     currentPipeline,
     hasUnsavedChanges,
@@ -135,7 +136,7 @@ const Header: React.FC = () => {
     try {
       await deletePipeline();
       setShowDeleteModal(false);
-      navigate('/pipelines');
+      navigate('/canvas');
     } catch (err) {
       console.error('Failed to delete pipeline:', err);
     } finally {
@@ -252,26 +253,6 @@ const Header: React.FC = () => {
                   <RotateCcw size={16} />
                   <span>Reset Canvas</span>
                 </button>
-
-                {/* Auth buttons - Show if not logged in */}
-                {!user && (
-                  <>
-                    <div className="menu-divider"></div>
-                    <div className="menu-section">
-                      <div className="menu-section-label">Account</div>
-                      <div className="auth-button-group">
-                        <button className="auth-group-btn secondary" onClick={() => { setShowMenu(false); navigate('/login'); }}>
-                          <LogIn size={14} />
-                          <span>Sign In</span>
-                        </button>
-                        <button className="auth-group-btn primary" onClick={() => { setShowMenu(false); navigate('/signup'); }}>
-                          <UserPlus size={14} />
-                          <span>Sign Up</span>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             </>
           )}
@@ -280,7 +261,7 @@ const Header: React.FC = () => {
         <div className="header-logo">
           <h1 className="logo-text">Flow</h1>
         </div>
-        {currentPipeline && (
+        {pipelineId && currentPipeline && (
           <>
             <div className="header-divider"></div>
             <div className="pipeline-info">
@@ -375,7 +356,7 @@ const Header: React.FC = () => {
                             className={`pipeline-dropdown-item ${p.id === usePipelineStore.getState().pipelineId ? 'active-pipeline' : ''}`}
                             onClick={() => {
                               setShowPipelinesList(false);
-                              navigate(`/pipelines/${p.id}`);
+                              navigate(`/canvas/pipelines/${p.id}`);
                             }}
                             style={{ cursor: 'pointer' }}
                           >
@@ -392,7 +373,7 @@ const Header: React.FC = () => {
                       <div className="menu-divider" />
                       <button className="pipeline-dropdown-item" onClick={() => {
                         setShowPipelinesList(false);
-                        navigate('/pipelines');
+                        navigate('/');
                       }}>
                         <Plus size={14} />
                         <span>New Pipeline</span>
@@ -412,8 +393,8 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-right">
-        {/* Profile Menu - Only show if user is logged in */}
-        {user && (
+        {user ? (
+          /* Profile Menu - Show if user is logged in */
           <div className="profile-menu">
             <button
               className="profile-button"
@@ -456,6 +437,18 @@ const Header: React.FC = () => {
                 </div>
               </>
             )}
+          </div>
+        ) : (
+          /* Auth buttons - Show if user is not logged in */
+          <div className="header-auth-buttons">
+            <button className="header-auth-btn secondary" onClick={() => navigate('/login')}>
+              <LogIn size={16} />
+              Sign In
+            </button>
+            <button className="header-auth-btn primary" onClick={() => navigate('/signup')}>
+              <UserPlus size={16} />
+              Sign Up
+            </button>
           </div>
         )}
       </div>
