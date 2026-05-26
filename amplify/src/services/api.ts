@@ -122,8 +122,15 @@ export const pipelineApi = {
   /**
    * Create a new empty pipeline — calls create_pipeline Lambda
    */
-  create(name: string = 'Untitled Pipeline'): Promise<PipelineResponse> {
-    return apiService.post<PipelineResponse>('/pipelines', { name });
+  create(payload: { name: string; description?: string; nodes: any[]; edges: any[] } = { name: 'Untitled Pipeline', nodes: [], edges: [] }): Promise<PipelineResponse> {
+    return apiService.post<PipelineResponse>('/pipelines', payload);
+  },
+
+  /**
+   * List all pipelines for the current user — calls list_pipelines Lambda
+   */
+  list(): Promise<{ pipelines: PipelineResponse[]; count: number }> {
+    return apiService.get<{ pipelines: PipelineResponse[]; count: number }>('/pipelines');
   },
 
   /**
