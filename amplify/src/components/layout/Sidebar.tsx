@@ -1,17 +1,25 @@
 import React from 'react';
+import { Layers } from 'lucide-react';
 import { STAGE_TYPES, TASK_TYPES } from '../../types/nodeTypes';
 import './Sidebar.css';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  visible?: boolean;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ visible = true }) => {
   const onDragStart = (event: React.DragEvent, itemType: string, label: string, color: string, category: 'stage' | 'task') => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify({ type: itemType, label, color, category }));
     event.dataTransfer.effectAllowed = 'move';
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${visible ? 'sidebar-visible' : 'sidebar-hidden'}`}>
       <div className="sidebar-header">
-        <h3>Components</h3>
+        <div className="sidebar-header-title">
+          <Layers size={15} />
+          <h3>Components</h3>
+        </div>
         <p className="sidebar-subtitle">Drag to canvas</p>
       </div>
       <div className="node-palette">
