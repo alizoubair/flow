@@ -1,0 +1,19 @@
+output "state_bucket_name" {
+  value = aws_s3_bucket.terraform_state.bucket
+}
+
+output "state_bucket_arn" {
+  value = aws_s3_bucket.terraform_state.arn
+}
+
+output "lock_table_name" {
+  value = aws_dynamodb_table.terraform_locks.name
+}
+
+output "artifacts_bucket_name" {
+  value = aws_s3_bucket.artifacts.bucket
+}
+
+output "artifacts_bucket_arn" {
+  value = aws_s3_bucket.artifacts.arn
+}
