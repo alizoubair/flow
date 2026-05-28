@@ -14,7 +14,8 @@ import json
 import boto3
 from botocore.exceptions import ClientError
 
-dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+region = os.environ.get('FLOW_AWS_REGION', os.environ.get('AWS_REGION', 'us-west-2'))
+dynamodb = boto3.resource('dynamodb', region_name=region)
 
 CONNECTIONS_TABLE = os.environ.get('CONNECTIONS_TABLE', 'flow-ws-connections')
 WS_ENDPOINT = os.environ.get('WS_ENDPOINT', '')
@@ -24,7 +25,7 @@ def _get_apigw_client():
     return boto3.client(
         'apigatewaymanagementapi',
         endpoint_url=WS_ENDPOINT,
-        region_name=os.environ.get('AWS_REGION', 'us-east-1')
+        region_name=region
     )
 
 
