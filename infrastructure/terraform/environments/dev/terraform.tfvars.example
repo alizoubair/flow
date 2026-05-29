@@ -1,0 +1,15 @@
+aws_region  = "us-east-1"
+aws_profile = "alizoubair"
+
+github_repo         = "alizoubair/flow"
+github_access_token = "ghp_xxxxxxxxxxxxxxxxxxxx"
+
+# Google OAuth — optional, leave empty to skip
+# Get from: https://console.cloud.google.com/apis/credentials
+google_client_id     = ""
+google_client_secret = ""
+
+# GitHub OAuth — optional, leave empty to skip
+# Get from: https://github.com/settings/developers
+github_client_id     = ""
+github_client_secret = ""
