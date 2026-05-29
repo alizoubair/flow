@@ -111,14 +111,15 @@ module "orchestrator_runtime" {
   cognito_allowed_clients = [module.cognito.client_id]
 
   # Orchestrator permissions
-  artifact_bucket_arn  = module.s3.artifacts_bucket_arn
-  dynamodb_table_arns  = [module.dynamodb.pipelines_table_arn]
-  secrets_manager_arns = []
+  artifact_bucket_arn    = module.s3.artifacts_bucket_arn
+  dynamodb_table_arns    = [module.dynamodb.pipelines_table_arn]
+  secrets_manager_arns   = []
+  ws_api_execution_arn   = module.apigateway.ws_api_execution_arn
 
   # Environment variables
   extra_env_vars = {
     PIPELINES_TABLE_NAME = module.dynamodb.pipelines_table_name
-    MEMORY_ID            = module.agentcore_memory.memory_id
+    MEMORY_ID            = "" # TODO: add when memory module is deployed
     BEDROCK_MODEL_ID     = "us.anthropic.claude-sonnet-4-6"
   }
 

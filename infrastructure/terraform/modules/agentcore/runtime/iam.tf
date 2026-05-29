@@ -232,3 +232,21 @@ resource "aws_iam_role_policy" "secrets_access" {
     ]
   })
 }
+
+# WebSocket API ManageConnections Policy
+resource "aws_iam_role_policy" "websocket_connections" {
+  count = var.ws_api_execution_arn != "" ? 1 : 0
+  name  = "websocket-connections-policy"
+  role  = aws_iam_role.runtime_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["execute-api:ManageConnections"]
+        Resource = "${var.ws_api_execution_arn}/*"
+      }
+    ]
+  })
+}

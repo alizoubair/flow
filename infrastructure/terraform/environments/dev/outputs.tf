@@ -25,10 +25,10 @@ output "ws_api_endpoint" {
   value       = module.apigateway.ws_endpoint
 }
 
-output "agentcore_memory_id" {
-  description = "AgentCore memory ID"
-  value       = module.agentcore_memory.memory_id
-}
+# output "agentcore_memory_id" {
+#   description = "AgentCore memory ID"
+#   value       = module.agentcore_memory.memory_id
+# }
 
 output "orchestrator_runtime_arn" {
   description = "Orchestrator agent runtime ARN"

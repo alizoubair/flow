@@ -176,6 +176,12 @@ variable "agent_source_path" {
   default     = ""
 }
 
+variable "ws_api_execution_arn" {
+  description = "WebSocket API execution ARN for ManageConnections permission (orchestrator only)"
+  type        = string
+  default     = ""
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
