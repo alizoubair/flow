@@ -1,6 +1,6 @@
 # Flow — Terraform Infrastructure
 
-Terraform configuration for the Flow CI/CD Pipeline Platform.
+Terraform configuration for the Flow Platform.
 
 ## Structure
 
