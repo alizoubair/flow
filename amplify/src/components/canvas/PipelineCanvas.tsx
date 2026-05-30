@@ -9,6 +9,7 @@ import ReactFlow, {
   ReactFlowProvider,
   NodeTypes,
   BackgroundVariant,
+  OnSelectionChangeParams,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { usePipelineStore } from '../../store/pipelineStore';
@@ -18,11 +19,15 @@ import { Plus, Minus, Maximize2, Undo2, Redo2 } from 'lucide-react';
 import './PipelineCanvas.css';
 
 
+import { CanvasMode } from './CanvasToolbar';
+
 interface PipelineCanvasProps {
   onNodeSelect: (node: Node | null) => void;
+  onSelectionChange?: (nodes: Node[]) => void;
+  mode?: CanvasMode;
 }
 
-const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
+const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelectionChange: onSelectionChangeProp, mode = 'select' }) => {
   const {
     nodes: storeNodes,
     edges: storeEdges,
@@ -235,6 +240,21 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
     onNodeSelect(null);
   }, [onNodeSelect]);
 
+  const handleSelectionChange = useCallback(
+    ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
+      // Always pass all selected nodes to parent
+      onSelectionChangeProp?.(selectedNodes);
+      
+      // For ConfigPanel, only show when single node selected
+      if (selectedNodes.length === 1) {
+        onNodeSelect(selectedNodes[0]);
+      } else {
+        onNodeSelect(null);
+      }
+    },
+    [onNodeSelect, onSelectionChangeProp]
+  );
+
   const handleZoomIn = useCallback(() => {
     if (reactFlowInstance) {
       reactFlowInstance.zoomIn();
@@ -279,7 +299,11 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
   }, [undo, redo, checkCanUndo, checkCanRedo]);
 
   return (
-    <div className="pipeline-canvas" ref={reactFlowWrapper}>
+    <div
+      className="pipeline-canvas"
+      ref={reactFlowWrapper}
+      style={{ cursor: mode === 'hand' ? 'grab' : 'default' }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -295,12 +319,20 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect }) => {
         onDragOver={onDragOver}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
+        onSelectionChange={handleSelectionChange}
         onMove={handleMove}
-        defaultViewport={{ x: 250, y: 100, zoom: 1 }}
+        panOnDrag={mode === 'hand' ? true : [1, 2]}
+        nodesDraggable={true}
+        selectionOnDrag={mode === 'select'}
+        selectionMode={'partial' as any}
+        multiSelectionKeyCode="Control"
+        panOnScroll={false}
+        zoomOnScroll={true}
         minZoom={0.2}
         maxZoom={2}
         fitView={false}
         nodeOrigin={[0, 0]}
+        deleteKeyCode={null}
         style={{ backgroundColor: canvasBackgroundColor }}
       >
         {backgroundVariant && (

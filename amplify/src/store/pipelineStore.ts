@@ -1,8 +1,11 @@
 import { create } from 'zustand';
 import { Node, Edge } from 'reactflow';
+import { pipelineApi } from '../services/api';
+import { authService } from '../services/auth';
 
 export type Theme = 'light' | 'dark';
 export type CanvasBackground = 'dots' | 'lines' | 'grid' | 'none';
+export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error' | 'local';
 
 interface HistoryState {
   nodes: Node[];
@@ -10,6 +13,7 @@ interface HistoryState {
 }
 
 interface PipelineState {
+  pipelineId: string | null;
   currentPipeline: {
     name: string;
     lastSaved: Date | null;
@@ -17,15 +21,17 @@ interface PipelineState {
   nodes: Node[];
   edges: Edge[];
   hasUnsavedChanges: boolean;
+  saveStatus: SaveStatus;
   theme: Theme;
   canvasBackground: CanvasBackground;
   canvasBackgroundColor: string;
 
-  // History for undo/redo
   history: HistoryState[];
   historyIndex: number;
 
   // Actions
+  setPipelineId: (id: string) => void;
+  initPipeline: (id: string, name?: string, nodes?: Node[], edges?: Edge[]) => void;
   addNode: (node: Node) => void;
   updateNode: (nodeId: string, data: any) => void;
   addTaskNode: (parentId: string, taskData: any) => void;
@@ -37,6 +43,8 @@ interface PipelineState {
   setCanvasBackground: (background: CanvasBackground) => void;
   setCanvasBackgroundColor: (color: string) => void;
   markSaved: () => void;
+  setSaveStatus: (status: SaveStatus) => void;
+  deletePipeline: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -59,18 +67,35 @@ const saveToHistory = (state: PipelineState, newNodes: Node[], newEdges: Edge[])
 };
 
 export const usePipelineStore = create<PipelineState>((set, get) => ({
+  pipelineId: null,
   currentPipeline: {
-    name: 'My Pipeline',
+    name: 'Untitled Pipeline',
     lastSaved: null,
   },
   nodes: [],
   edges: [],
   hasUnsavedChanges: false,
+  saveStatus: 'saved',
   theme: 'light',
   canvasBackground: 'dots',
   canvasBackgroundColor: '#F7F8FA',
   history: [{ nodes: [], edges: [] }],
   historyIndex: 0,
+
+  setPipelineId: (id) => set({ pipelineId: id }),
+
+  initPipeline: (id, name = 'Untitled Pipeline', nodes = [], edges = []) => {
+    set({
+      pipelineId: id,
+      currentPipeline: { name, lastSaved: null },
+      nodes,
+      edges,
+      hasUnsavedChanges: false,
+      saveStatus: 'saved',
+      history: [{ nodes, edges }],
+      historyIndex: 0,
+    });
+  },
 
   addNode: (node) => {
     set((state) => {
@@ -265,7 +290,33 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
         ? { ...state.currentPipeline, lastSaved: new Date() }
         : null,
       hasUnsavedChanges: false,
+      saveStatus: authService.isAuthenticated() ? 'saved' : 'local',
     }));
+  },
+
+  setSaveStatus: (status) => set({ saveStatus: status }),
+
+  deletePipeline: async () => {
+    const { pipelineId } = get();
+    if (!pipelineId) return;
+
+    if (authService.isAuthenticated()) {
+      await pipelineApi.delete(pipelineId);
+    } else {
+      localStorage.removeItem(`flow-pipeline-${pipelineId}`);
+    }
+
+    // Reset store state
+    set({
+      pipelineId: null,
+      currentPipeline: { name: 'Untitled Pipeline', lastSaved: null },
+      nodes: [],
+      edges: [],
+      hasUnsavedChanges: false,
+      saveStatus: 'saved',
+      history: [{ nodes: [], edges: [] }],
+      historyIndex: 0,
+    });
   },
 
   undo: () => {
@@ -309,19 +360,36 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   },
 }));
 
-// Auto-save functionality
+// Auth-aware autosave — debounced 3s after last change
 let autoSaveTimeout: NodeJS.Timeout;
+
 usePipelineStore.subscribe((state, prevState) => {
-  if (state.hasUnsavedChanges && !prevState.hasUnsavedChanges) {
-    // Start auto-save timer when changes are detected
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
-      // TODO: Call Lambda API to save
-      console.log('Auto-saving pipeline...', {
-        nodes: state.nodes,
-        edges: state.edges,
-      });
-      usePipelineStore.getState().markSaved();
-    }, 2000); // Save after 2 seconds of inactivity
-  }
+  if (!state.hasUnsavedChanges || state.hasUnsavedChanges === prevState.hasUnsavedChanges) return;
+
+  clearTimeout(autoSaveTimeout);
+  autoSaveTimeout = setTimeout(async () => {
+    const { pipelineId, nodes, edges, currentPipeline, markSaved, setSaveStatus } = usePipelineStore.getState();
+    if (!pipelineId) return;
+
+    const name = currentPipeline?.name || 'Untitled Pipeline';
+
+    if (authService.isAuthenticated()) {
+      // Logged in — save to DynamoDB via update_pipeline Lambda
+      setSaveStatus('saving');
+      try {
+        await pipelineApi.update(pipelineId, { name, nodes, edges });
+        markSaved();
+      } catch (err) {
+        console.error('Autosave failed:', err);
+        setSaveStatus('error');
+      }
+    } else {
+      // Anonymous — save to localStorage
+      localStorage.setItem(
+        `flow-pipeline-${pipelineId}`,
+        JSON.stringify({ name, nodes, edges, savedAt: new Date().toISOString() })
+      );
+      markSaved();
+    }
+  }, 3000);
 });

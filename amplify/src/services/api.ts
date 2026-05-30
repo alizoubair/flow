@@ -1,3 +1,5 @@
+import { PipelineResponse } from '../types/pipeline';
+
 /**
  * API Configuration
  * Update API_BASE_URL with your API Gateway endpoint after deployment
@@ -28,7 +30,6 @@ async function apiRequest<T>(
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Get ID token from localStorage (Cognito issues ID tokens for API auth)
   const token = localStorage.getItem('flow-id-token') || localStorage.getItem('flow-access-token');
 
   const headers: Record<string, string> = {
@@ -36,7 +37,6 @@ async function apiRequest<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  // Add authorization header if token exists
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
@@ -62,27 +62,31 @@ async function apiRequest<T>(
     if (error instanceof ApiError) {
       throw error;
     }
-
-    // Network error or other fetch errors
-    throw new ApiError(
-      'Network error. Please check your connection.',
-      0
-    );
+    throw new ApiError('Network error. Please check your connection.', 0);
   }
 }
 
 /**
  * API Service
+ *
+ * Provides HTTP methods for interacting with the backend API.
+ * All methods automatically include authentication tokens from localStorage
+ * and handle error responses consistently.
  */
-export const api = {
+export const apiService = {
   /**
-   * GET request
+   * Perform a GET request to fetch data from the API
+   * @param endpoint - API endpoint path (e.g., '/pipelines' or '/pipelines/123')
+   * @returns Promise resolving to the typed response data
    */
   get: <T>(endpoint: string) =>
     apiRequest<T>(endpoint, { method: 'GET' }),
 
   /**
-   * POST request
+   * Perform a POST request to create new resources
+   * @param endpoint - API endpoint path
+   * @param body - Request payload to be JSON-stringified and sent
+   * @returns Promise resolving to the typed response data
    */
   post: <T>(endpoint: string, body: any) =>
     apiRequest<T>(endpoint, {
@@ -91,7 +95,10 @@ export const api = {
     }),
 
   /**
-   * PUT request
+   * Perform a PUT request to update existing resources
+   * @param endpoint - API endpoint path (typically includes resource ID)
+   * @param body - Request payload with updated data
+   * @returns Promise resolving to the typed response data
    */
   put: <T>(endpoint: string, body: any) =>
     apiRequest<T>(endpoint, {
@@ -100,8 +107,50 @@ export const api = {
     }),
 
   /**
-   * DELETE request
+   * Perform a DELETE request to remove resources
+   * @param endpoint - API endpoint path (typically includes resource ID)
+   * @returns Promise resolving to the typed response data (often void)
    */
   delete: <T>(endpoint: string) =>
     apiRequest<T>(endpoint, { method: 'DELETE' }),
+};
+
+/**
+ * Pipeline-specific API calls
+ */
+export const pipelineApi = {
+  /**
+   * Create a new empty pipeline — calls create_pipeline Lambda
+   */
+  create(payload: { name: string; description?: string; nodes: any[]; edges: any[] } = { name: 'Untitled Pipeline', nodes: [], edges: [] }): Promise<PipelineResponse> {
+    return apiService.post<PipelineResponse>('/pipelines', payload);
+  },
+
+  /**
+   * List all pipelines for the current user — calls list_pipelines Lambda
+   */
+  list(): Promise<{ pipelines: PipelineResponse[]; count: number }> {
+    return apiService.get<{ pipelines: PipelineResponse[]; count: number }>('/pipelines');
+  },
+
+  /**
+   * Get an existing pipeline by ID — calls get_pipeline Lambda
+   */
+  get(id: string): Promise<PipelineResponse> {
+    return apiService.get<PipelineResponse>(`/pipelines/${id}`);
+  },
+
+  /**
+   * Update pipeline nodes, edges and name — calls update_pipeline Lambda
+   */
+  update(id: string, payload: { name: string; nodes: any[]; edges: any[] }): Promise<PipelineResponse> {
+    return apiService.put<PipelineResponse>(`/pipelines/${id}`, payload);
+  },
+
+  /**
+   * Delete a pipeline — calls delete_pipeline Lambda
+   */
+  delete(id: string): Promise<void> {
+    return apiService.delete<void>(`/pipelines/${id}`);
+  },
 };

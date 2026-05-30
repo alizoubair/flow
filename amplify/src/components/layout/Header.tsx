@@ -1,16 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { usePipelineStore } from '../../store/pipelineStore';
-import { Menu, RotateCcw, AlertTriangle, Sun, Moon, User, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { pipelineApi } from '../../services/api';
+import { authService } from '../../services/auth';
+import {
+  Menu, RotateCcw, AlertTriangle, Sun, Moon, LogOut, LogIn,
+  UserPlus, Settings, GitBranch,
+  Trash2, Copy, Plus, PenLine, Check, Loader, X
+} from 'lucide-react';
 import './Header.css';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { pipelineId } = useParams<{ pipelineId: string }>();
   const {
     currentPipeline,
     hasUnsavedChanges,
+    saveStatus,
     updatePipelineName,
     resetCanvas,
+    deletePipeline,
     theme,
     canvasBackground,
     canvasBackgroundColor,
@@ -22,7 +31,14 @@ const Header: React.FC = () => {
   const [pipelineName, setPipelineName] = useState(currentPipeline?.name || '');
   const [showMenu, setShowMenu] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showPipelineSettings, setShowPipelineSettings] = useState(false);
+  const [showPipelinesList, setShowPipelinesList] = useState(false);
+  const [pipelines, setPipelines] = useState<any[]>([]);
+  const [loadingPipelines, setLoadingPipelines] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -57,12 +73,31 @@ const Header: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch pipelines when dropdown opens
+  useEffect(() => {
+    if (showPipelinesList && authService.isAuthenticated()) {
+      setLoadingPipelines(true);
+      pipelineApi.list()
+        .then(response => {
+          setPipelines(response.pipelines || []);
+        })
+        .catch(err => {
+          console.error('Failed to load pipelines:', err);
+          setPipelines([]);
+        })
+        .finally(() => {
+          setLoadingPipelines(false);
+        });
+    }
+  }, [showPipelinesList]);
+
   const getSaveStatus = () => {
-    if (hasUnsavedChanges) return 'Saving...';
+    if (saveStatus === 'saving') return 'Saving...';
+    if (saveStatus === 'error') return 'Save failed — retrying';
+    if (saveStatus === 'local') return 'Saved locally';
     if (!currentPipeline?.lastSaved) return 'Not saved yet';
 
     const diff = Math.floor((currentTime - currentPipeline.lastSaved.getTime()) / 1000);
-
     if (diff < 10) return 'Just saved';
     if (diff < 60) return `Saved ${diff}s ago`;
     if (diff < 3600) return `Saved ${Math.floor(diff / 60)}m ago`;
@@ -94,6 +129,19 @@ const Header: React.FC = () => {
   const confirmReset = () => {
     resetCanvas();
     setShowResetModal(false);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deletePipeline();
+      setShowDeleteModal(false);
+      navigate('/canvas');
+    } catch (err) {
+      console.error('Failed to delete pipeline:', err);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleLogout = () => {
@@ -205,26 +253,6 @@ const Header: React.FC = () => {
                   <RotateCcw size={16} />
                   <span>Reset Canvas</span>
                 </button>
-
-                {/* Auth buttons - Show if not logged in */}
-                {!user && (
-                  <>
-                    <div className="menu-divider"></div>
-                    <div className="menu-section">
-                      <div className="menu-section-label">Account</div>
-                      <div className="auth-button-group">
-                        <button className="auth-group-btn secondary" onClick={() => { setShowMenu(false); navigate('/login'); }}>
-                          <LogIn size={16} />
-                          <span>Sign In</span>
-                        </button>
-                        <button className="auth-group-btn primary" onClick={() => { setShowMenu(false); navigate('/signup'); }}>
-                          <UserPlus size={16} />
-                          <span>Sign Up</span>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             </>
           )}
@@ -233,7 +261,7 @@ const Header: React.FC = () => {
         <div className="header-logo">
           <h1 className="logo-text">Flow</h1>
         </div>
-        {currentPipeline && (
+        {pipelineId && currentPipeline && (
           <>
             <div className="header-divider"></div>
             <div className="pipeline-info">
@@ -259,8 +287,104 @@ const Header: React.FC = () => {
                   {currentPipeline.name}
                 </span>
               )}
-              <span className={`save-status ${hasUnsavedChanges ? 'saving' : 'saved'}`}>
-                {hasUnsavedChanges && <span className="saving-dot"></span>}
+
+              {/* Pipeline settings icon */}
+              <div className="pipeline-info-divider" />
+              <div className="pipeline-icon-menu">
+                <button
+                  className={`pipeline-icon-btn ${showPipelineSettings ? 'active' : ''}`}
+                  onClick={() => { setShowPipelineSettings(p => !p); setShowPipelinesList(false); }}
+                  aria-label="Pipeline settings"
+                  title="Pipeline settings"
+                >
+                  <Settings size={14} />
+                </button>
+                {showPipelineSettings && (
+                  <>
+                    <div className="menu-overlay" onClick={() => setShowPipelineSettings(false)} />
+                    <div className="pipeline-dropdown">
+                      <button className="pipeline-dropdown-item" onClick={() => {
+                        setShowPipelineSettings(false);
+                        setIsEditingName(true);
+                        setPipelineName(currentPipeline.name);
+                      }}>
+                        <PenLine size={14} />
+                        <span>Rename</span>
+                      </button>
+                      <button className="pipeline-dropdown-item" onClick={() => setShowPipelineSettings(false)}>
+                        <Copy size={14} />
+                        <span>Duplicate</span>
+                      </button>
+                      <div className="menu-divider" />
+                      <button className="pipeline-dropdown-item danger" onClick={() => {
+                        setShowPipelineSettings(false);
+                        setDeleteConfirmText('');
+                        setShowDeleteModal(true);
+                      }}>
+                        <Trash2 size={14} />
+                        <span>Delete pipeline</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Pipelines switcher icon */}
+              <div className="pipeline-icon-menu">
+                <button
+                  className={`pipeline-icon-btn ${showPipelinesList ? 'active' : ''}`}
+                  onClick={() => { setShowPipelinesList(p => !p); setShowPipelineSettings(false); }}
+                  aria-label="My pipelines"
+                  title="My pipelines"
+                >
+                  <GitBranch size={14} />
+                </button>
+                {showPipelinesList && (
+                  <>
+                    <div className="menu-overlay" onClick={() => setShowPipelinesList(false)} />
+                    <div className="pipeline-dropdown pipelines-list">
+                      <div className="pipeline-dropdown-header">My Pipelines</div>
+                      {loadingPipelines ? (
+                        <div className="pipeline-dropdown-item" style={{ justifyContent: 'center' }}>
+                          <Loader size={14} className="spin" />
+                          <span>Loading...</span>
+                        </div>
+                      ) : pipelines.length > 0 ? (
+                        pipelines.map(p => (
+                          <div
+                            key={p.id}
+                            className={`pipeline-dropdown-item ${p.id === usePipelineStore.getState().pipelineId ? 'active-pipeline' : ''}`}
+                            onClick={() => {
+                              setShowPipelinesList(false);
+                              navigate(`/canvas/pipelines/${p.id}`);
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {p.id === usePipelineStore.getState().pipelineId && <span className="pipeline-active-dot" />}
+                            <span className="pipeline-list-name">{p.name}</span>
+                            <span className="pipeline-list-time">{new Date(p.updatedAt).toLocaleDateString()}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="pipeline-dropdown-item" style={{ justifyContent: 'center', color: '#888' }}>
+                          <span>No pipelines yet</span>
+                        </div>
+                      )}
+                      <div className="menu-divider" />
+                      <button className="pipeline-dropdown-item" onClick={() => {
+                        setShowPipelinesList(false);
+                        navigate('/');
+                      }}>
+                        <Plus size={14} />
+                        <span>New Pipeline</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <span className={`save-status ${saveStatus === 'saving' ? 'saving' : saveStatus === 'error' ? 'error' : 'saved'}`} style={{ marginLeft: 8 }}>
+                {saveStatus === 'saving' && <span className="saving-dot"></span>}
                 {getSaveStatus()}
               </span>
             </div>
@@ -269,8 +393,8 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-right">
-        {/* Profile Menu - Only show if user is logged in */}
-        {user && (
+        {user ? (
+          /* Profile Menu - Show if user is logged in */
           <div className="profile-menu">
             <button
               className="profile-button"
@@ -314,6 +438,18 @@ const Header: React.FC = () => {
               </>
             )}
           </div>
+        ) : (
+          /* Auth buttons - Show if user is not logged in */
+          <div className="header-auth-buttons">
+            <button className="header-auth-btn secondary" onClick={() => navigate('/login')}>
+              <LogIn size={16} />
+              Sign In
+            </button>
+            <button className="header-auth-btn primary" onClick={() => navigate('/signup')}>
+              <UserPlus size={16} />
+              Sign Up
+            </button>
+          </div>
         )}
       </div>
 
@@ -340,6 +476,86 @@ const Header: React.FC = () => {
                 onClick={confirmReset}
               >
                 Reset Canvas
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Pipeline Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-overlay" onClick={() => !isDeleting && setShowDeleteModal(false)}>
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="delete-modal-header">
+              <div className="delete-modal-icon">
+                <Trash2 size={18} />
+              </div>
+              <div>
+                <h3 className="delete-modal-title">Delete pipeline</h3>
+                <p className="delete-modal-subtitle">{currentPipeline?.name}</p>
+              </div>
+            </div>
+
+            {/* Warning */}
+            <div className="delete-modal-warning">
+              <AlertTriangle size={14} />
+              <span>This action is permanent and cannot be undone. All stages, tasks and connections will be lost.</span>
+            </div>
+
+            {/* Confirm input */}
+            <div className="delete-modal-confirm-field">
+              <label className="delete-modal-label">
+                Type <span className="delete-modal-name-hint">{currentPipeline?.name}</span> to confirm
+              </label>
+              <div className="delete-modal-input-wrap">
+                <input
+                  className={`delete-modal-input ${
+                    deleteConfirmText.length > 0
+                      ? deleteConfirmText === currentPipeline?.name
+                        ? 'match'
+                        : 'no-match'
+                      : ''
+                  }`}
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type pipeline name..."
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && deleteConfirmText === currentPipeline?.name) confirmDelete();
+                    if (e.key === 'Escape') setShowDeleteModal(false);
+                  }}
+                />
+                {deleteConfirmText.length > 0 && (
+                  <div className={`delete-modal-input-indicator ${deleteConfirmText === currentPipeline?.name ? 'match' : 'no-match'}`}>
+                    {deleteConfirmText === currentPipeline?.name
+                      ? <Check size={13} />
+                      : <X size={13} />
+                    }
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="delete-modal-actions">
+              <button
+                className="delete-modal-cancel"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                className="delete-modal-confirm-btn"
+                onClick={confirmDelete}
+                disabled={isDeleting || deleteConfirmText !== currentPipeline?.name}
+              >
+                {isDeleting
+                  ? <><Loader size={13} className="spin" /> Deleting…</>
+                  : <><Trash2 size={13} /> Delete Pipeline</>
+                }
               </button>
             </div>
           </div>

@@ -8,6 +8,19 @@
   z-index: 1;
 }
 
+/* Cursor modes */
+.pipeline-canvas[style*="grab"] .react-flow__pane {
+  cursor: grab !important;
+}
+
+.pipeline-canvas[style*="grab"] .react-flow__pane:active {
+  cursor: grabbing !important;
+}
+
+.pipeline-canvas[style*="default"] .react-flow__pane {
+  cursor: default !important;
+}
+
 .react-flow__node {
   padding: 0 !important;
   background: transparent !important;
