@@ -26,6 +26,7 @@ agent_core_client = boto3.client('bedrock-agentcore', region_name=region)
 ORCHESTRATOR_RUNTIME_ID = os.environ.get('ORCHESTRATOR_RUNTIME_ID')
 ORCHESTRATOR_RUNTIME_ARN = os.environ.get('ORCHESTRATOR_RUNTIME_ARN')
 CONNECTIONS_TABLE = os.environ.get('CONNECTIONS_TABLE', 'flow-ws-connections')
+CONVERSATIONS_TABLE = os.environ.get('CONVERSATIONS_TABLE', 'flow-conversations')
 WS_ENDPOINT = os.environ.get('WS_ENDPOINT', '')
 
 
@@ -51,6 +52,23 @@ def _send_message(connection_id, message):
         table.delete_item(Key={'connectionId': connection_id})
     except ClientError as e:
         print(f'Error sending message to {connection_id}: {e}')
+
+
+def _save_conversation(user_id, prompt, response_body, action):
+    """Save the conversation to DynamoDB for frontend history."""
+    from datetime import datetime, timezone
+    try:
+        table = dynamodb.Table(CONVERSATIONS_TABLE)
+        table.put_item(Item={
+            'userId': user_id,
+            'createdAt': datetime.now(timezone.utc).isoformat(),
+            'prompt': prompt,
+            'response': response_body[:5000],  # Truncate large responses
+            'action': action,
+            'ttl': int(datetime.now(timezone.utc).timestamp()) + 90 * 86400,  # 90 days
+        })
+    except Exception as e:
+        print(f'Failed to save conversation: {e}')
 
 
 def _invoke_orchestrator(connection_id, action, payload):
@@ -107,6 +125,9 @@ def _invoke_orchestrator(connection_id, action, payload):
         # Read the streaming response
         response_body = response['response'].read().decode('utf-8')
         print(f'Runtime response: {response_body[:500]}')
+
+        # Save conversation to DynamoDB for frontend history
+        _save_conversation(user_id, payload.get('prompt', ''), response_body, action)
 
         _send_message(connection_id, {
             'type': 'orchestrator_complete',
