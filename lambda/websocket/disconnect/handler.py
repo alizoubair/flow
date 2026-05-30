@@ -8,7 +8,7 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 
-dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('AWS_REGION', 'us-east-1'))
+dynamodb = boto3.resource('dynamodb', region_name=os.environ.get('FLOW_AWS_REGION', os.environ.get('AWS_REGION', 'us-west-2')))
 CONNECTIONS_TABLE = os.environ.get('CONNECTIONS_TABLE', 'flow-ws-connections')
 
 
