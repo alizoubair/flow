@@ -230,19 +230,6 @@ resource "aws_bedrockagentcore_agent_runtime" "agent_runtime" {
   ]
 }
 
-# CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "runtime_logs" {
-  name              = "/aws/bedrock/agentcore/runtime/${var.component_name}"
-  retention_in_days = var.log_retention_days
-
-  tags = merge(
-    var.tags,
-    {
-      Component = var.component_name
-    }
-  )
-}
-
 # SSM Parameters for Runtime
 resource "aws_ssm_parameter" "runtime_arn" {
   name  = "/${var.project_name}/${var.environment}/runtimes/${var.component_name}/arn"
