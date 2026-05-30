@@ -48,6 +48,9 @@ module "apigateway" {
   pipeline_function_arns  = module.lambda.pipeline_function_arns
   pipeline_function_names = module.lambda.pipeline_function_names
 
+  conversation_function_arns  = module.lambda.conversation_function_arns
+  conversation_function_names = module.lambda.conversation_function_names
+
   cognito_user_pool_id = module.cognito.user_pool_id
   cognito_client_id    = module.cognito.client_id
 }
@@ -65,6 +68,8 @@ module "lambda" {
   ws_connections_table_arn  = module.dynamodb.ws_connections_table_arn
   pipelines_table_name      = module.dynamodb.pipelines_table_name
   pipelines_table_arn       = module.dynamodb.pipelines_table_arn
+  conversations_table_name  = module.dynamodb.conversations_table_name
+  conversations_table_arn   = module.dynamodb.conversations_table_arn
   lambda_src_path           = local.lambda_src_path
 
   ws_api_id            = module.apigateway.ws_api_id
@@ -74,6 +79,22 @@ module "lambda" {
   orchestrator_runtime_arn = module.orchestrator_runtime.agent_runtime_arn
 
   depends_on = [module.orchestrator_runtime]
+}
+
+# AgentCore Memory
+
+module "agentcore_memory" {
+  source = "../../modules/agentcore/memory"
+
+  project_name      = local.app_name
+  environment       = local.environment
+  event_expiry_days = 90
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
 }
 
 # Orchestrator Runtime
@@ -120,6 +141,7 @@ module "orchestrator_runtime" {
   extra_env_vars = {
     PIPELINES_TABLE_NAME    = module.dynamodb.pipelines_table_name
     BEDROCK_MODEL_ID        = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    MEMORY_ID               = module.agentcore_memory.memory_id
     REPO_ANALYSIS_AGENT_URL = module.repo_analysis_runtime.agent_runtime_arn
   }
 
@@ -127,6 +149,7 @@ module "orchestrator_runtime" {
     module.s3,
     module.dynamodb,
     module.cognito,
+    module.agentcore_memory,
     module.repo_analysis_runtime
   ]
 }
