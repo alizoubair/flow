@@ -1,0 +1,104 @@
+.canvas-toolbar {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+body.dark-theme .canvas-toolbar {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.canvas-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.canvas-toolbar-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.canvas-toolbar-btn.active {
+  background: #1e1e1e;
+  color: #ffffff;
+}
+
+.canvas-toolbar-btn.danger {
+  color: #6b7280;
+}
+
+.canvas-toolbar-btn.danger:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.canvas-toolbar-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.canvas-toolbar-btn:disabled:hover {
+  background: transparent;
+  color: #6b7280;
+}
+
+.canvas-toolbar-btn svg {
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.canvas-toolbar-btn.active svg,
+.canvas-toolbar-btn:hover svg {
+  opacity: 1;
+}
+
+/* Divider between groups */
+.canvas-toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+  margin: 0 8px;
+}
+
+body.dark-theme .canvas-toolbar-btn {
+  color: #9ca3af;
+}
+
+body.dark-theme .canvas-toolbar-btn:hover {
+  background: #374151;
+  color: #e5e7eb;
+}
+
+body.dark-theme .canvas-toolbar-btn.active {
+  background: #e0e0e0;
+  color: #1e1e1e;
+}
+
+body.dark-theme .canvas-toolbar-divider {
+  background: #374151;
+}
