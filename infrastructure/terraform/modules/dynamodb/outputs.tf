@@ -13,3 +13,11 @@ output "pipelines_table_name" {
 output "pipelines_table_arn" {
   value = aws_dynamodb_table.pipelines.arn
 }
+
+output "conversations_table_name" {
+  value = aws_dynamodb_table.conversations.name
+}
+
+output "conversations_table_arn" {
+  value = aws_dynamodb_table.conversations.arn
+}

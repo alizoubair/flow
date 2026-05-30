@@ -74,3 +74,31 @@ resource "aws_dynamodb_table" "pipelines" {
 
   tags = { Name = "${var.app_name}-pipelines" }
 }
+
+# Conversations table
+# Stores chat history for the frontend (prompt, response, timestamps)
+# PK = userId, SK = createdAt (ISO timestamp) for chronological queries
+
+resource "aws_dynamodb_table" "conversations" {
+  name         = "${var.app_name}-conversations"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "userId"
+  range_key    = "createdAt"
+
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "S"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  tags = { Name = "${var.app_name}-conversations" }
+}
