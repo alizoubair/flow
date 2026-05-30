@@ -17,7 +17,7 @@ Real-time communication between the frontend and backend agents.
 Route selection expression: `$request.body.action`
 
 ### HTTP API
-RESTful endpoints for pipeline CRUD operations, protected by Cognito JWT authorizer.
+RESTful endpoints for pipeline CRUD and conversation history, protected by Cognito JWT authorizer.
 
 | Route | Lambda | Purpose |
 |---|---|---|
@@ -26,6 +26,7 @@ RESTful endpoints for pipeline CRUD operations, protected by Cognito JWT authori
 | `GET /pipelines/{id}` | pipeline-get | Get a specific pipeline |
 | `PUT /pipelines/{id}` | pipeline-update | Update a pipeline |
 | `DELETE /pipelines/{id}` | pipeline-delete | Delete a pipeline |
+| `GET /conversations` | conversation-list | List conversation history |
 
 ## Inputs
 
@@ -38,6 +39,8 @@ RESTful endpoints for pipeline CRUD operations, protected by Cognito JWT authori
 | `ws_function_names` | map(string) | WebSocket Lambda function names |
 | `pipeline_function_arns` | map(string) | Pipeline Lambda invoke ARNs |
 | `pipeline_function_names` | map(string) | Pipeline Lambda function names |
+| `conversation_function_arns` | map(string) | Conversation Lambda invoke ARNs |
+| `conversation_function_names` | map(string) | Conversation Lambda function names |
 | `cognito_user_pool_id` | string | Cognito User Pool ID for JWT authorizer |
 | `cognito_client_id` | string | Cognito App Client ID for JWT audience |
 

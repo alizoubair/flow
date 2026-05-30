@@ -30,6 +30,12 @@ Creates Lambda functions, shared layers, and IAM roles for the Flow platform.
 | `pipeline-update` | Update pipeline nodes/edges |
 | `pipeline-delete` | Delete a pipeline |
 
+### Conversation (`conversation`)
+
+| Function | Description |
+|---|---|
+| `conversation-list` | List conversation history for a user |
+
 ## Shared Layers
 
 - `pipeline-shared` — db_utils, validators (from `lambda/shared/`)
@@ -53,6 +59,9 @@ Creates Lambda functions, shared layers, and IAM roles for the Flow platform.
 | `orchestrator_runtime_id` | string | AgentCore runtime ID |
 | `orchestrator_runtime_arn` | string | AgentCore runtime ARN |
 
+| `conversations_table_name` | string | DynamoDB conversations table name |
+| `conversations_table_arn` | string | DynamoDB conversations table ARN |
+
 ## Outputs
 
 | Name | Description |
@@ -61,3 +70,5 @@ Creates Lambda functions, shared layers, and IAM roles for the Flow platform.
 | `ws_function_names` | Map of WebSocket Lambda function names |
 | `pipeline_function_arns` | Map of Pipeline Lambda invoke ARNs |
 | `pipeline_function_names` | Map of Pipeline Lambda function names |
+| `conversation_function_arns` | Map of Conversation Lambda invoke ARNs |
+| `conversation_function_names` | Map of Conversation Lambda function names |
