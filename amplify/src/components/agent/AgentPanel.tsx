@@ -55,6 +55,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const [wsConnected, setWsConnected] = useState(false);
   const [wsError, setWsError] = useState<string | null>(null);
   const [history, setHistory] = useState<ConversationItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -108,7 +109,8 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   useEffect(() => {
     conversationApi.list(20)
       .then(data => setHistory(data.conversations))
-      .catch(err => console.error('Failed to load history:', err));
+      .catch(err => console.error('Failed to load history:', err))
+      .finally(() => setHistoryLoading(false));
   }, []);
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {
@@ -400,7 +402,12 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
       {/* Tab: History */}
       {tab === 'history' && (
         <div className="ap-body">
-          {runs.length === 0 && history.length === 0 ? (
+          {historyLoading ? (
+            <div className="ap-empty">
+              <Loader size={32} className="spin" />
+              <p>Loading history...</p>
+            </div>
+          ) : runs.length === 0 && history.length === 0 ? (
             <div className="ap-empty">
               <History size={32} />
               <p>No runs yet</p>
