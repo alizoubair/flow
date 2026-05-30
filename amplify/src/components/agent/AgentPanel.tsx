@@ -5,6 +5,7 @@ import {
   Circle, CheckCircle2, XCircle, Code2, History, Workflow
 } from 'lucide-react';
 import { wsService } from '../../services/websocket';
+import { conversationApi, ConversationItem } from '../../services/api';
 import './AgentPanel.css';
 
 interface AgentStep {
@@ -53,6 +54,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const [width, setWidth] = useState(340);
   const [wsConnected, setWsConnected] = useState(false);
   const [wsError, setWsError] = useState<string | null>(null);
+  const [history, setHistory] = useState<ConversationItem[]>([]);
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -100,6 +102,13 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
       unsubscribeClose();
       wsService.disconnect();
     };
+  }, []);
+
+  // Fetch conversation history on mount
+  useEffect(() => {
+    conversationApi.list(20)
+      .then(data => setHistory(data.conversations))
+      .catch(err => console.error('Failed to load history:', err));
   }, []);
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {
@@ -297,7 +306,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         </button>
         <button className={`ap-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           <History size={12} /> History
-          {runs.length > 0 && <span className="ap-tab-badge">{runs.length}</span>}
+          {(runs.length + history.length) > 0 && <span className="ap-tab-badge">{runs.length + history.length}</span>}
         </button>
       </div>
 
@@ -391,7 +400,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
       {/* Tab: History */}
       {tab === 'history' && (
         <div className="ap-body">
-          {runs.length === 0 ? (
+          {runs.length === 0 && history.length === 0 ? (
             <div className="ap-empty">
               <History size={32} />
               <p>No runs yet</p>
@@ -399,6 +408,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             </div>
           ) : (
             <div className="ap-history-list">
+              {/* Current session runs */}
               {runs.map(run => (
                 <div key={run.id} className="ap-history-card">
                   <div className="ap-history-card-top">
@@ -418,6 +428,20 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                       <RotateCcw size={12} /> View Output
                     </button>
                   )}
+                </div>
+              ))}
+              {/* Persisted history from API */}
+              {history.map((item, i) => (
+                <div key={`hist-${i}`} className="ap-history-card">
+                  <div className="ap-history-card-top">
+                    <span className="ap-run-badge completed">
+                      <CheckCircle2 size={10} /> completed
+                    </span>
+                    <span className="ap-history-time">
+                      <Clock size={10} /> {new Date(item.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="ap-history-prompt">"{item.prompt}"</p>
                 </div>
               ))}
             </div>
