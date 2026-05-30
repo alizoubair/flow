@@ -99,7 +99,7 @@ module "orchestrator_runtime" {
 
   # CodeBuild configuration
   enable_codebuild       = true
-  agent_source_path      = abspath("${path.root}/../../../../agentcore/orchestrator")
+  agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/orchestrator")
   source_s3_bucket       = module.s3.artifacts_bucket_name
   source_s3_key          = "agent-source/orchestrator.zip"
   buildspec_path         = "buildspec.yml"
@@ -118,14 +118,63 @@ module "orchestrator_runtime" {
 
   # Environment variables
   extra_env_vars = {
-    PIPELINES_TABLE_NAME = module.dynamodb.pipelines_table_name
-    MEMORY_ID            = "" # TODO: add when memory module is deployed
-    BEDROCK_MODEL_ID     = "us.anthropic.claude-sonnet-4-6"
+    PIPELINES_TABLE_NAME    = module.dynamodb.pipelines_table_name
+    BEDROCK_MODEL_ID        = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    REPO_ANALYSIS_AGENT_URL = module.repo_analysis_runtime.agent_runtime_arn
   }
 
   depends_on = [
     module.s3,
     module.dynamodb,
-    module.cognito
+    module.cognito,
+    module.repo_analysis_runtime
   ]
+}
+
+# Repo Analysis Runtime
+
+module "repo_analysis_runtime" {
+  source = "../../modules/agentcore/runtime"
+
+  project_name   = local.app_name
+  environment    = local.environment
+  component_name = "repo-analysis"
+  aws_region     = var.aws_region
+  account_id     = data.aws_caller_identity.current.account_id
+  aws_profile    = var.aws_profile
+
+  # Runtime configuration
+  protocol     = "HTTP"
+  runtime_mode = "standard"
+  network_mode = "PUBLIC"
+
+  # Container configuration
+  container_uri = ""
+  image_tag     = "latest"
+
+  # CodeBuild configuration
+  enable_codebuild       = true
+  agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/repo-analysis")
+  source_s3_bucket       = module.s3.artifacts_bucket_name
+  source_s3_key          = "agent-source/repo-analysis.zip"
+  buildspec_path         = "buildspec.yml"
+  codebuild_compute_type = "BUILD_GENERAL1_SMALL"
+  codebuild_image        = "aws/codebuild/standard:7.0"
+
+  # No auth — called via InvokeAgentRuntime from orchestrator (SigV4)
+  cognito_issuer_url      = ""
+  cognito_allowed_clients = []
+
+  # Permissions
+  artifact_bucket_arn  = ""
+  dynamodb_table_arns  = []
+  secrets_manager_arns = []
+
+  # Environment variables
+  extra_env_vars = {
+    BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    GITHUB_TOKEN     = ""
+  }
+
+  depends_on = [module.s3]
 }

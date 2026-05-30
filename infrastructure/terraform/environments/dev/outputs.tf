@@ -25,10 +25,10 @@ output "ws_api_endpoint" {
   value       = module.apigateway.ws_endpoint
 }
 
-# output "agentcore_memory_id" {
-#   description = "AgentCore memory ID"
-#   value       = module.agentcore_memory.memory_id
-# }
+ output "agentcore_memory_id" {
+   description = "AgentCore memory ID"
+   value       = module.agentcore_memory.memory_id
+}
 
 output "orchestrator_runtime_arn" {
   description = "Orchestrator agent runtime ARN"
@@ -53,4 +53,14 @@ output "ecr_repository_url" {
 output "codebuild_project_name" {
   description = "CodeBuild project name for building orchestrator container"
   value       = module.orchestrator_runtime.codebuild_project_name
+}
+
+output "repo_analysis_runtime_arn" {
+  description = "Repo Analysis agent runtime ARN"
+  value       = module.repo_analysis_runtime.agent_runtime_arn
+}
+
+output "repo_analysis_runtime_id" {
+  description = "Repo Analysis agent runtime ID"
+  value       = module.repo_analysis_runtime.agent_runtime_id
 }
