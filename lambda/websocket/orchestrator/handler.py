@@ -104,17 +104,8 @@ def _invoke_orchestrator(connection_id, action, payload):
             payload=json.dumps(runtime_input).encode('utf-8'),
         )
 
-        print(f'Response keys: {list(response.keys())}')
-
-        # The response is a streaming response — read from the appropriate key
-        if 'payload' in response:
-            response_body = response['payload'].read().decode('utf-8')
-        elif 'body' in response:
-            response_body = response['body'].read().decode('utf-8')
-        else:
-            # Try to extract text from the response directly
-            response_body = json.dumps({k: str(v)[:200] for k, v in response.items() if k != 'ResponseMetadata'})
-
+        # Read the streaming response
+        response_body = response['response'].read().decode('utf-8')
         print(f'Runtime response: {response_body[:500]}')
 
         _send_message(connection_id, {
