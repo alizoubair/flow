@@ -31,7 +31,7 @@ terraform/
 | Module | Description |
 |---|---|
 | `s3` | Terraform state bucket, artifacts bucket, DynamoDB lock table |
-| `dynamodb` | Pipelines and WebSocket connections tables |
+| `dynamodb` | Pipelines, WebSocket connections, and conversations tables |
 | `cognito` | User Pool, Hosted UI, Google and GitHub OAuth |
 | `apigateway` | HTTP API (pipeline CRUD) + WebSocket API (agent communication) |
 | `lambda` | WebSocket handlers + pipeline CRUD handlers + shared layers |

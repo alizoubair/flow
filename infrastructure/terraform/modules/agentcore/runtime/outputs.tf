@@ -26,8 +26,8 @@ output "execution_role_name" {
 }
 
 output "log_group_name" {
-  description = "Name of the CloudWatch log group"
-  value       = aws_cloudwatch_log_group.runtime_logs.name
+  description = "Name of the CloudWatch log group (auto-created by AgentCore)"
+  value       = "/aws/bedrock-agentcore/runtimes/${aws_bedrockagentcore_agent_runtime.agent_runtime.agent_runtime_id}-DEFAULT"
 }
 
 output "ssm_parameter_arn" {

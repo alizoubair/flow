@@ -65,3 +65,13 @@ variable "orchestrator_runtime_arn" {
   type        = string
   default     = ""
 }
+
+variable "conversations_table_name" {
+  description = "Name of the DynamoDB conversations table"
+  type        = string
+}
+
+variable "conversations_table_arn" {
+  description = "ARN of the DynamoDB conversations table"
+  type        = string
+}

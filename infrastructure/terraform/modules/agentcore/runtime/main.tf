@@ -141,8 +141,7 @@ resource "null_resource" "build_and_wait" {
   count = var.enable_codebuild ? 1 : 0
 
   triggers = {
-    codebuild_project = aws_codebuild_project.container_build[0].id
-    image_tag         = var.image_tag
+    source_hash = local.source_hash
   }
 
   provisioner "local-exec" {
@@ -151,13 +150,6 @@ resource "null_resource" "build_and_wait" {
     }
     command = <<-EOT
       set -e
-      if aws ecr describe-images \
-        --repository-name "${local.resource_prefix}-runtime" \
-        --image-ids imageTag="${var.image_tag}" \
-        --region ${var.aws_region} >/dev/null 2>&1; then
-        echo "Image ${local.resource_prefix}-runtime:${var.image_tag} exists, skipping build."
-        exit 0
-      fi
       echo "Starting CodeBuild for ${var.component_name}..."
       BUILD_ID=$(aws codebuild start-build \
         --project-name "${local.resource_prefix}-build" \
@@ -236,19 +228,6 @@ resource "aws_bedrockagentcore_agent_runtime" "agent_runtime" {
     aws_iam_role.runtime_execution_role,
     null_resource.build_and_wait
   ]
-}
-
-# CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "runtime_logs" {
-  name              = "/aws/bedrock/agentcore/runtime/${var.component_name}"
-  retention_in_days = var.log_retention_days
-
-  tags = merge(
-    var.tags,
-    {
-      Component = var.component_name
-    }
-  )
 }
 
 # SSM Parameters for Runtime

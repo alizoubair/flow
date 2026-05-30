@@ -12,6 +12,7 @@ locals {
       layer_arn   = aws_lambda_layer_version.websocket_shared.arn # shared layer with websockets
       env_vars = {
         CONNECTIONS_TABLE          = var.ws_connections_table_name
+        CONVERSATIONS_TABLE        = var.conversations_table_name
         WS_ENDPOINT                = "https://${var.ws_api_id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
         ORCHESTRATOR_RUNTIME_ID    = var.orchestrator_runtime_id
         ORCHESTRATOR_RUNTIME_ARN   = var.orchestrator_runtime_arn
@@ -20,6 +21,7 @@ locals {
       dynamodb_arns = [
         var.ws_connections_table_arn,
         "${var.ws_connections_table_arn}/index/*",
+        var.conversations_table_arn,
       ]
       extra_statements = [
         {
@@ -57,6 +59,23 @@ locals {
       dynamodb_arns = [
         var.pipelines_table_arn,
         "${var.pipelines_table_arn}/index/*",
+      ]
+      extra_statements = []
+    }
+
+    conversation = {
+      functions   = ["list"]
+      src_subdir  = "conversations"
+      runtime     = "python3.12"
+      timeout     = 10
+      memory_size = 128
+      layer_arn   = null
+      env_vars = {
+        CONVERSATIONS_TABLE = var.conversations_table_name
+        FLOW_AWS_REGION     = var.aws_region
+      }
+      dynamodb_arns = [
+        var.conversations_table_arn,
       ]
       extra_statements = []
     }

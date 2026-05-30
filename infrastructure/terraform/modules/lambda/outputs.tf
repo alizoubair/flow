@@ -13,3 +13,11 @@ output "ws_invoke_arns" {
 output "ws_function_names" {
   value = { for k, v in aws_lambda_function.main : k => v.function_name if startswith(k, "ws-") }
 }
+
+output "conversation_function_arns" {
+  value = { for k, v in aws_lambda_function.main : k => v.arn if startswith(k, "conversation-") }
+}
+
+output "conversation_function_names" {
+  value = { for k, v in aws_lambda_function.main : k => v.function_name if startswith(k, "conversation-") }
+}

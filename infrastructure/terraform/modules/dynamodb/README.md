@@ -8,6 +8,7 @@ Creates the DynamoDB tables used by the Flow platform.
 |---|---|---|
 | `flow-pipelines` | PK (HASH) + SK (RANGE) | Single-table design for pipeline data |
 | `flow-ws-connections` | `connectionId` (HASH) | Active WebSocket connections with TTL |
+| `flow-conversations` | `userId` (HASH) + `createdAt` (RANGE) | Chat history for frontend display |
 
 ### Pipelines table access patterns
 - `PK = "USER#<sub>"` + `SK begins_with "PIPELINE#"` — list all pipelines for a user
@@ -17,6 +18,10 @@ Creates the DynamoDB tables used by the Flow platform.
 ### WebSocket connections table
 - `UserIdIndex` GSI — find all connections for a user (for fan-out notifications)
 - TTL on `ttl` attribute — auto-expires stale connections after 2 hours
+
+### Conversations table
+- Query by `userId` sorted by `createdAt` descending for chronological history
+- TTL on `ttl` attribute — auto-expires after 90 days
 
 ## Inputs
 
@@ -33,3 +38,5 @@ Creates the DynamoDB tables used by the Flow platform.
 | `pipelines_table_arn` | Pipelines table ARN |
 | `ws_connections_table_name` | WebSocket connections table name |
 | `ws_connections_table_arn` | WebSocket connections table ARN |
+| `conversations_table_name` | Conversations table name |
+| `conversations_table_arn` | Conversations table ARN |
