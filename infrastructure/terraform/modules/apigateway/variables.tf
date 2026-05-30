@@ -41,3 +41,16 @@ variable "cognito_client_id" {
   description = "Cognito App Client ID for JWT authorizer"
   type        = string
 }
+
+# Conversation Lambda functions for HTTP API
+variable "conversation_function_arns" {
+  description = "Map of conversation-<function> => ARN for conversation lambda functions"
+  type        = map(string)
+  default     = {}
+}
+
+variable "conversation_function_names" {
+  description = "Map of conversation-<function> => function name for conversation lambda functions"
+  type        = map(string)
+  default     = {}
+}

@@ -122,13 +122,41 @@ resource "aws_apigatewayv2_route" "pipeline" {
 }
 
 resource "aws_lambda_permission" "http_api" {
-  for_each = var.pipeline_function_names
+  for_each = merge(var.pipeline_function_names, var.conversation_function_names)
 
   statement_id  = "AllowHTTPAPIInvoke-${each.key}"
   action        = "lambda:InvokeFunction"
   function_name = each.value
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.http.execution_arn}/*/*"
+}
+
+# Conversation routes
+
+locals {
+  conversation_routes = {
+    "GET /conversations" = var.conversation_function_arns["conversation-list"]
+  }
+}
+
+resource "aws_apigatewayv2_integration" "conversation" {
+  for_each = local.conversation_routes
+
+  api_id                 = aws_apigatewayv2_api.http.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = each.value
+  integration_method     = "POST"
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "conversation" {
+  for_each = local.conversation_routes
+
+  api_id             = aws_apigatewayv2_api.http.id
+  route_key          = each.key
+  target             = "integrations/${aws_apigatewayv2_integration.conversation[each.key].id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
 }
 
 resource "aws_apigatewayv2_stage" "http" {
