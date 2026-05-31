@@ -1,4 +1,4 @@
-/* ── Panel shell ─────────────────────────────────────────── */
+/* Panel shell */
 .agent-panel {
   display: flex;
   flex-direction: column;
@@ -14,7 +14,7 @@
   position: relative;
 }
 
-/* ── Resize handle ───────────────────────────────────────── */
+/* Resize handle */
 .ap-resize-handle {
   position: absolute;
   left: 0;
@@ -49,7 +49,7 @@ body.dark-theme .ap-resize-handle:active {
   to   { transform: translateX(32px); opacity: 0; }
 }
 
-/* ── Header ──────────────────────────────────────────────── */
+/* Header */
 .ap-header {
   display: flex;
   align-items: center;
@@ -114,7 +114,7 @@ body.dark-theme .ap-resize-handle:active {
 }
 .ap-close:hover { background: #f3f4f6; color: #374151; }
 
-/* ── Subtitle ────────────────────────────────────────────── */
+/* Subtitle */
 .ap-subtitle {
   padding: 8px 14px 10px;
   font-size: 12px;
@@ -129,7 +129,7 @@ body.dark-theme .ap-subtitle {
   border-color: #374151;
 }
 
-/* ── Tabs ────────────────────────────────────────────────── */
+/* Tabs */
 .ap-tabs {
   display: flex;
   align-items: center;
@@ -193,7 +193,7 @@ body.dark-theme .ap-subtitle {
   color: #374151;
 }
 
-/* ── Body (scrollable) ───────────────────────────────────── */
+/* Body (scrollable) */
 .ap-body {
   flex: 1;
   overflow-y: auto;
@@ -207,7 +207,7 @@ body.dark-theme .ap-subtitle {
 .ap-body::-webkit-scrollbar-track { background: transparent; }
 .ap-body::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 4px; }
 
-/* ── Section label ───────────────────────────────────────── */
+/* Section label */
 .ap-section-label {
   font-size: 11px;
   font-weight: 700;
@@ -217,7 +217,7 @@ body.dark-theme .ap-subtitle {
   margin-bottom: 2px;
 }
 
-/* ── Quick start grid ────────────────────────────────────── */
+/* Quick start grid */
 .ap-quickstart-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -262,7 +262,7 @@ body.dark-theme .ap-subtitle {
 
 .ap-qs-card:hover .ap-qs-arrow { color: #374151; }
 
-/* ── Prompt input ────────────────────────────────────────── */
+/* Prompt input */
 .ap-prompt-input {
   width: 100%;
   padding: 10px 12px;
@@ -302,7 +302,7 @@ body.dark-theme .ap-subtitle {
   gap: 8px;
 }
 
-/* ── Run button ──────────────────────────────────────────── */
+/* Run button */
 .ap-run-btn {
   display: flex;
   align-items: center;
@@ -331,7 +331,7 @@ body.dark-theme .ap-subtitle {
   transform: none;
 }
 
-/* ── Run meta ────────────────────────────────────────────── */
+/* Run meta */
 .ap-run-meta {
   display: flex;
   align-items: center;
@@ -372,7 +372,7 @@ body.dark-theme .ap-subtitle {
   border: 1px solid #f3f4f6;
 }
 
-/* ── Execution timeline ──────────────────────────────────── */
+/* Execution timeline */
 .ap-timeline {
   display: flex;
   flex-direction: column;
@@ -464,7 +464,100 @@ body.dark-theme .ap-subtitle {
   line-height: 1.4;
 }
 
-/* ── Output card ─────────────────────────────────────────── */
+/* Timeline summary chips */
+.ap-timeline-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.ap-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+body.dark-theme .ap-summary-chip {
+  background: #374151;
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+/* Timeline inline action buttons */
+.ap-timeline-actions {
+  display: flex;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.ap-timeline-actions .ap-timeline-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 20px;
+}
+
+.ap-timeline-actions .ap-timeline-line {
+  flex: 1;
+  width: 1.5px;
+  background: #e5e7eb;
+  min-height: 12px;
+}
+
+.ap-timeline-actions-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.ap-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.ap-inline-btn.edit {
+  background: #1e1e1e;
+  color: #ffffff;
+  border: none;
+}
+
+.ap-inline-btn.edit:hover {
+  background: #2a2a2a;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.ap-inline-btn.validate {
+  background: #ffffff;
+  color: #374151;
+  border: 1.5px solid #d4d4d4;
+}
+
+.ap-inline-btn.validate:hover {
+  background: #f5f5f5;
+  border-color: #b0b0b0;
+  transform: translateY(-1px);
+}
+
+/* Output card */
 .ap-output-card {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -586,7 +679,7 @@ body.dark-theme .ap-subtitle {
   white-space: pre;
 }
 
-/* ── Empty state ─────────────────────────────────────────── */
+/* Empty state */
 .ap-empty {
   flex: 1;
   display: flex;
@@ -613,7 +706,7 @@ body.dark-theme .ap-subtitle {
   max-width: 220px;
 }
 
-/* ── History ─────────────────────────────────────────────── */
+/* History */
 .ap-history-list {
   display: flex;
   flex-direction: column;
@@ -677,7 +770,7 @@ body.dark-theme .ap-subtitle {
   border-color: #d1d5db;
 }
 
-/* ── Spinner ─────────────────────────────────────────────── */
+/* Spinner */
 .spin {
   animation: spin 0.75s linear infinite;
 }
@@ -686,7 +779,7 @@ body.dark-theme .ap-subtitle {
   to { transform: rotate(360deg); }
 }
 
-/* ── Dark theme ──────────────────────────────────────────── */
+/* Dark theme */
 body.dark-theme .agent-panel {
   background: #1f2937;
   border-color: #374151;
@@ -783,6 +876,30 @@ body.dark-theme .ap-timeline-dot {
 
 body.dark-theme .ap-timeline-label {
   color: #e5e7eb;
+}
+
+body.dark-theme .ap-timeline-actions .ap-timeline-line {
+  background: #374151;
+}
+
+body.dark-theme .ap-inline-btn.edit {
+  background: #f9fafb;
+  color: #1e1e1e;
+}
+
+body.dark-theme .ap-inline-btn.edit:hover {
+  background: #e5e7eb;
+}
+
+body.dark-theme .ap-inline-btn.validate {
+  background: #374151;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+body.dark-theme .ap-inline-btn.validate:hover {
+  background: #4b5563;
+  border-color: #6b7280;
 }
 
 body.dark-theme .ap-output-card {
