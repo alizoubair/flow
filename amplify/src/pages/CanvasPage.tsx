@@ -7,7 +7,7 @@ import PipelineCanvas from '../components/canvas/PipelineCanvas';
 import CanvasToolbar, { CanvasMode } from '../components/canvas/CanvasToolbar';
 import ConfigPanel from '../components/panels/ConfigPanel';
 import AgentPanel from '../components/agent/AgentPanel';
-import { Node } from 'reactflow';
+import { Node, Edge } from 'reactflow';
 import { usePipelineStore } from '../store/pipelineStore';
 import { pipelineApi } from '../services/api';
 import { authService } from '../services/auth';
@@ -17,12 +17,13 @@ const CanvasPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
+  const [selectedEdges, setSelectedEdges] = useState<Edge[]>([]);
   const [componentsOpen, setComponentsOpen] = useState(true);
   const [agentOpen, setAgentOpen] = useState(false);
   const [agentMounted, setAgentMounted] = useState(false);
   const [canvasMode, setCanvasMode] = useState<CanvasMode>('select');
 
-  const { initPipeline, removeNode } = usePipelineStore();
+  const { initPipeline, removeNode, removeEdge, edgeStyle, setEdgeStyle } = usePipelineStore();
 
   // Keyboard shortcuts: V = select, H = hand, Delete = delete selected
   useEffect(() => {
@@ -30,14 +31,14 @@ const CanvasPage: React.FC = () => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.key === 'v' || e.key === 'V') setCanvasMode('select');
       if (e.key === 'h' || e.key === 'H') setCanvasMode('hand');
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodes.length > 0) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && (selectedNodes.length > 0 || selectedEdges.length > 0)) {
         e.preventDefault();
         handleDelete();
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [selectedNodes]);
+  }, [selectedNodes, selectedEdges]);
 
   // Bootstrap: load or create pipeline
   useEffect(() => {
@@ -104,7 +105,9 @@ const CanvasPage: React.FC = () => {
 
   const handleDelete = () => {
     selectedNodes.forEach(n => removeNode(n.id));
+    selectedEdges.forEach(e => removeEdge(e.id));
     setSelectedNodes([]);
+    setSelectedEdges([]);
   };
 
   // Single selected node for ConfigPanel
@@ -117,7 +120,8 @@ const CanvasPage: React.FC = () => {
         mode={canvasMode}
         componentsOpen={componentsOpen}
         agentOpen={agentOpen}
-        hasSelection={selectedNodes.length > 0}
+        hasSelection={selectedNodes.length > 0 || selectedEdges.length > 0}
+        edgeStyle={edgeStyle}
         onModeChange={setCanvasMode}
         onDelete={handleDelete}
         onToggleComponents={() => setComponentsOpen(prev => !prev)}
@@ -125,12 +129,16 @@ const CanvasPage: React.FC = () => {
           setAgentOpen(prev => !prev);
           setAgentMounted(true);
         }}
+        onEdgeStyleChange={setEdgeStyle}
       />
       <div className="app-content">
         <Sidebar visible={componentsOpen} />
         <PipelineCanvas
           onNodeSelect={() => {}}
-          onSelectionChange={setSelectedNodes}
+          onSelectionChange={(nodes, edges) => {
+            setSelectedNodes(nodes);
+            setSelectedEdges(edges || []);
+          }}
           mode={canvasMode}
         />
         {agentMounted && (
