@@ -126,10 +126,11 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
     setEdgesState(storeEdges);
   }, [storeEdges]);
 
-  // Auto-fit view when pipeline nodes are loaded from the agent
+  // Auto-fit view when pipeline nodes are loaded from the agent (multiple nodes at once)
   const prevNodeCountRef = useRef(0);
   React.useEffect(() => {
-    if (reactFlowInstance && storeNodes.length > 0 && prevNodeCountRef.current === 0) {
+    const addedCount = storeNodes.length - prevNodeCountRef.current;
+    if (reactFlowInstance && addedCount > 1 && prevNodeCountRef.current === 0) {
       setTimeout(() => {
         reactFlowInstance.fitView({ padding: 0.3 });
       }, 100);
