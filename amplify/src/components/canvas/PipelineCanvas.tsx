@@ -210,19 +210,13 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
           }
         });
 
-        console.log('Task drop - targetStageId:', targetStageId);
-        console.log('Available stage nodes:', storeNodes.filter(n => n.type === 'stageNode'));
-
         if (targetStageId) {
-          console.log('Adding task to stage:', targetStageId);
           // Add task as child of the stage
           addTaskNode(targetStageId, {
             name: label,
             type: type,
             commands: [],
           });
-        } else {
-          console.log('No stage found under cursor');
         }
       }
     },

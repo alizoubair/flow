@@ -19,6 +19,7 @@ const CanvasPage: React.FC = () => {
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const [componentsOpen, setComponentsOpen] = useState(true);
   const [agentOpen, setAgentOpen] = useState(false);
+  const [agentMounted, setAgentMounted] = useState(false);
   const [canvasMode, setCanvasMode] = useState<CanvasMode>('select');
 
   const { initPipeline, removeNode } = usePipelineStore();
@@ -120,7 +121,10 @@ const CanvasPage: React.FC = () => {
         onModeChange={setCanvasMode}
         onDelete={handleDelete}
         onToggleComponents={() => setComponentsOpen(prev => !prev)}
-        onToggleAgent={() => setAgentOpen(prev => !prev)}
+        onToggleAgent={() => {
+          setAgentOpen(prev => !prev);
+          setAgentMounted(true);
+        }}
       />
       <div className="app-content">
         <Sidebar visible={componentsOpen} />
@@ -129,11 +133,14 @@ const CanvasPage: React.FC = () => {
           onSelectionChange={setSelectedNodes}
           mode={canvasMode}
         />
-        {agentOpen ? (
-          <AgentPanel onClose={() => setAgentOpen(false)} />
-        ) : selectedNode ? (
+        {agentMounted && (
+          <div style={{ display: agentOpen ? 'contents' : 'none' }}>
+            <AgentPanel onClose={() => setAgentOpen(false)} />
+          </div>
+        )}
+        {!agentOpen && selectedNode && (
           <ConfigPanel selectedNode={selectedNode} />
-        ) : null}
+        )}
       </div>
     </div>
   );
