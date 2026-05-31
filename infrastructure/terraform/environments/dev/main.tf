@@ -144,6 +144,7 @@ module "orchestrator_runtime" {
     MEMORY_ID               = module.agentcore_memory.memory_id
     REPO_ANALYSIS_AGENT_URL = module.repo_analysis_runtime.agent_runtime_arn
     PIPELINE_GEN_AGENT_URL  = module.pipeline_gen_runtime.agent_runtime_arn
+    VALIDATION_AGENT_URL    = module.validation_runtime.agent_runtime_arn
   }
 
   depends_on = [
@@ -152,7 +153,8 @@ module "orchestrator_runtime" {
     module.cognito,
     module.agentcore_memory,
     module.repo_analysis_runtime,
-    module.pipeline_gen_runtime
+    module.pipeline_gen_runtime,
+    module.validation_runtime
   ]
 }
 
@@ -230,6 +232,53 @@ module "pipeline_gen_runtime" {
   agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/pipeline-gen")
   source_s3_bucket       = module.s3.artifacts_bucket_name
   source_s3_key          = "agent-source/pipeline-gen.zip"
+  buildspec_path         = "buildspec.yml"
+  codebuild_compute_type = "BUILD_GENERAL1_SMALL"
+  codebuild_image        = "aws/codebuild/standard:7.0"
+
+  # No auth — called via InvokeAgentRuntime from orchestrator (SigV4)
+  cognito_issuer_url      = ""
+  cognito_allowed_clients = []
+
+  # Permissions
+  artifact_bucket_arn  = ""
+  dynamodb_table_arns  = []
+  secrets_manager_arns = []
+
+  # Environment variables
+  extra_env_vars = {
+    BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+  }
+
+  depends_on = [module.s3]
+}
+
+# Validation Runtime
+
+module "validation_runtime" {
+  source = "../../modules/agentcore/runtime"
+
+  project_name   = local.app_name
+  environment    = local.environment
+  component_name = "validation"
+  aws_region     = var.aws_region
+  account_id     = data.aws_caller_identity.current.account_id
+  aws_profile    = var.aws_profile
+
+  # Runtime configuration
+  protocol     = "HTTP"
+  runtime_mode = "standard"
+  network_mode = "PUBLIC"
+
+  # Container configuration
+  container_uri = ""
+  image_tag     = "latest"
+
+  # CodeBuild configuration
+  enable_codebuild       = true
+  agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/validation")
+  source_s3_bucket       = module.s3.artifacts_bucket_name
+  source_s3_key          = "agent-source/validation.zip"
   buildspec_path         = "buildspec.yml"
   codebuild_compute_type = "BUILD_GENERAL1_SMALL"
   codebuild_image        = "aws/codebuild/standard:7.0"
