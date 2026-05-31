@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 REPO_ANALYSIS_RUNTIME_ARN = os.environ.get('REPO_ANALYSIS_AGENT_URL', '')
 PIPELINE_GEN_RUNTIME_ARN = os.environ.get('PIPELINE_GEN_AGENT_URL', '')
 VALIDATION_RUNTIME_ARN = os.environ.get('VALIDATION_AGENT_URL', '')
+EXPORT_RUNTIME_ARN = os.environ.get('EXPORT_AGENT_URL', '')
 
 
 def build_tools(user_id: str, session_id: str) -> list:
@@ -87,8 +88,32 @@ def build_tools(user_id: str, session_id: str) -> list:
             session_id=session_id,
         )
 
+    @tool
+    def export_pipeline(pipeline: dict, target: str) -> dict:
+        """
+        Export a CI/CD pipeline to a platform-specific configuration file.
+
+        Args:
+            pipeline: The pipeline JSON with name, stages, and edges.
+            target: Target platform — github-actions, gitlab-ci, aws-codepipeline,
+                jenkinsfile, or bitbucket-pipelines.
+
+        Returns:
+            Export result with target, filename, content, and summary.
+        """
+        if not EXPORT_RUNTIME_ARN:
+            return {'error': 'Export agent not configured'}
+
+        return call_agent(
+            runtime_arn=EXPORT_RUNTIME_ARN,
+            task={'pipeline': pipeline, 'target': target},
+            user_id=user_id,
+            session_id=session_id,
+        )
+
     return [
         analyze_repository,
         generate_pipeline,
         validate_pipeline,
+        export_pipeline,
     ]
