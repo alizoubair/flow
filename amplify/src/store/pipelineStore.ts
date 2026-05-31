@@ -5,6 +5,7 @@ import { authService } from '../services/auth';
 
 export type Theme = 'light' | 'dark';
 export type CanvasBackground = 'dots' | 'lines' | 'grid' | 'none';
+export type EdgeStyle = 'smoothstep' | 'solid' | 'dashed' | 'animated';
 export type SaveStatus = 'saved' | 'saving' | 'unsaved' | 'error' | 'local';
 
 interface HistoryState {
@@ -25,6 +26,7 @@ interface PipelineState {
   theme: Theme;
   canvasBackground: CanvasBackground;
   canvasBackgroundColor: string;
+  edgeStyle: EdgeStyle;
 
   history: HistoryState[];
   historyIndex: number;
@@ -37,11 +39,13 @@ interface PipelineState {
   addTaskNode: (parentId: string, taskData: any) => void;
   toggleStageExpand: (stageId: string) => void;
   removeNode: (nodeId: string) => void;
+  removeEdge: (edgeId: string) => void;
   updatePipelineName: (name: string) => void;
   resetCanvas: () => void;
   setTheme: (theme: Theme) => void;
   setCanvasBackground: (background: CanvasBackground) => void;
   setCanvasBackgroundColor: (color: string) => void;
+  setEdgeStyle: (style: EdgeStyle) => void;
   markSaved: () => void;
   setSaveStatus: (status: SaveStatus) => void;
   deletePipeline: () => Promise<void>;
@@ -79,6 +83,7 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
   theme: 'light',
   canvasBackground: 'dots',
   canvasBackgroundColor: '#F7F8FA',
+  edgeStyle: 'solid' as EdgeStyle,
   history: [{ nodes: [], edges: [] }],
   historyIndex: 0,
 
@@ -242,6 +247,17 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
     });
   },
 
+  removeEdge: (edgeId) => {
+    set((state) => {
+      const filteredEdges = state.edges.filter((edge) => edge.id !== edgeId);
+      return {
+        edges: filteredEdges,
+        hasUnsavedChanges: true,
+        ...saveToHistory(state, state.nodes, filteredEdges),
+      };
+    });
+  },
+
   updatePipelineName: (name) => {
     set((state) => ({
       currentPipeline: state.currentPipeline
@@ -282,6 +298,10 @@ export const usePipelineStore = create<PipelineState>((set, get) => ({
 
   setCanvasBackgroundColor: (color) => {
     set({ canvasBackgroundColor: color });
+  },
+
+  setEdgeStyle: (style) => {
+    set({ edgeStyle: style });
   },
 
   markSaved: () => {
