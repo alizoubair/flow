@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 REPO_ANALYSIS_RUNTIME_ARN = os.environ.get('REPO_ANALYSIS_AGENT_URL', '')
 PIPELINE_GEN_RUNTIME_ARN = os.environ.get('PIPELINE_GEN_AGENT_URL', '')
+VALIDATION_RUNTIME_ARN = os.environ.get('VALIDATION_AGENT_URL', '')
 
 
 def build_tools(user_id: str, session_id: str) -> list:
@@ -65,7 +66,29 @@ def build_tools(user_id: str, session_id: str) -> list:
             session_id=session_id,
         )
 
+    @tool
+    def validate_pipeline(pipeline: dict) -> dict:
+        """
+        Validate a CI/CD pipeline for correctness, completeness, and best practices.
+
+        Args:
+            pipeline: The pipeline JSON with name, stages, and edges to validate.
+
+        Returns:
+            Validation result with valid (bool), score (0-100), checks, and suggestions.
+        """
+        if not VALIDATION_RUNTIME_ARN:
+            return {'error': 'Validation agent not configured'}
+
+        return call_agent(
+            runtime_arn=VALIDATION_RUNTIME_ARN,
+            task={'pipeline': pipeline},
+            user_id=user_id,
+            session_id=session_id,
+        )
+
     return [
         analyze_repository,
         generate_pipeline,
+        validate_pipeline,
     ]
