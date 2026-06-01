@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useMemo, useState } from 'react';
 import ReactFlow, {
   Node,
+  Edge,
   Background,
   addEdge,
   Connection,
@@ -23,7 +24,7 @@ import { CanvasMode } from './CanvasToolbar';
 
 interface PipelineCanvasProps {
   onNodeSelect: (node: Node | null) => void;
-  onSelectionChange?: (nodes: Node[]) => void;
+  onSelectionChange?: (nodes: Node[], edges?: Edge[]) => void;
   mode?: CanvasMode;
 }
 
@@ -33,6 +34,7 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
     edges: storeEdges,
     canvasBackground,
     canvasBackgroundColor,
+    edgeStyle,
     toggleStageExpand,
     addTaskNode,
     addNode,
@@ -124,9 +126,34 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
     setEdgesState(storeEdges);
   }, [storeEdges]);
 
+  // Auto-fit view when pipeline nodes are loaded from the agent (multiple nodes at once)
+  const prevNodeCountRef = useRef(0);
+  React.useEffect(() => {
+    const addedCount = storeNodes.length - prevNodeCountRef.current;
+    if (reactFlowInstance && addedCount > 1 && prevNodeCountRef.current === 0) {
+      setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.3 });
+      }, 100);
+    }
+    prevNodeCountRef.current = storeNodes.length;
+  }, [storeNodes.length, reactFlowInstance]);
+
   const onConnect = useCallback(
-    (params: Connection) => setEdgesState((eds) => addEdge(params, eds)),
-    [setEdgesState]
+    (params: Connection) => {
+      const edgeProps: any = {
+        ...params,
+        type: 'smoothstep',
+      };
+      if (edgeStyle === 'animated') {
+        edgeProps.animated = true;
+      } else if (edgeStyle === 'dashed') {
+        edgeProps.style = { strokeDasharray: '5 5' };
+      } else if (edgeStyle === 'solid') {
+        edgeProps.type = 'default';
+      }
+      setEdgesState((eds) => addEdge(edgeProps, eds));
+    },
+    [setEdgesState, edgeStyle]
   );
 
   // Handle node changes from ReactFlow (drag, delete, etc.)
@@ -210,19 +237,13 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
           }
         });
 
-        console.log('Task drop - targetStageId:', targetStageId);
-        console.log('Available stage nodes:', storeNodes.filter(n => n.type === 'stageNode'));
-
         if (targetStageId) {
-          console.log('Adding task to stage:', targetStageId);
           // Add task as child of the stage
           addTaskNode(targetStageId, {
             name: label,
             type: type,
             commands: [],
           });
-        } else {
-          console.log('No stage found under cursor');
         }
       }
     },
@@ -241,9 +262,9 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
   }, [onNodeSelect]);
 
   const handleSelectionChange = useCallback(
-    ({ nodes: selectedNodes }: OnSelectionChangeParams) => {
-      // Always pass all selected nodes to parent
-      onSelectionChangeProp?.(selectedNodes);
+    ({ nodes: selectedNodes, edges: selectedEdges }: OnSelectionChangeParams) => {
+      // Always pass all selected nodes and edges to parent
+      onSelectionChangeProp?.(selectedNodes, selectedEdges);
       
       // For ConfigPanel, only show when single node selected
       if (selectedNodes.length === 1) {
@@ -331,6 +352,7 @@ const PipelineCanvas: React.FC<PipelineCanvasProps> = ({ onNodeSelect, onSelecti
         minZoom={0.2}
         maxZoom={2}
         fitView={false}
+        defaultEdgeOptions={{ type: 'smoothstep' }}
         nodeOrigin={[0, 0]}
         deleteKeyCode={null}
         style={{ backgroundColor: canvasBackgroundColor }}

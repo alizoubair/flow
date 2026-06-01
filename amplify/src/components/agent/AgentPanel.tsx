@@ -5,6 +5,9 @@ import {
   Circle, CheckCircle2, XCircle, Code2, History, Workflow
 } from 'lucide-react';
 import { wsService } from '../../services/websocket';
+import { conversationApi, ConversationItem } from '../../services/api';
+import { parsePipelineToReactFlow } from '../../services/pipelineParser';
+import { usePipelineStore } from '../../store/pipelineStore';
 import './AgentPanel.css';
 
 interface AgentStep {
@@ -13,6 +16,7 @@ interface AgentStep {
   label: string;
   detail?: string;
   duration?: number;
+  summary?: string[];
 }
 
 interface GenerationRun {
@@ -21,6 +25,7 @@ interface GenerationRun {
   status: 'running' | 'completed' | 'failed';
   steps: AgentStep[];
   result?: string;
+  pipelineMeta?: { stageCount: number; edgeCount: number; stageTypes: string[] };
   createdAt: Date;
   duration?: number;
 }
@@ -49,10 +54,11 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const [runs, setRuns] = useState<GenerationRun[]>([]);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const activeRunIdRef = useRef<string | null>(null);
-  const [closing, setClosing] = useState(false);
-  const [width, setWidth] = useState(340);
+  const [width, setWidth] = useState(370);
   const [wsConnected, setWsConnected] = useState(false);
   const [wsError, setWsError] = useState<string | null>(null);
+  const [history, setHistory] = useState<ConversationItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -102,6 +108,14 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     };
   }, []);
 
+  // Fetch conversation history on mount
+  useEffect(() => {
+    conversationApi.list(20)
+      .then(data => setHistory(data.conversations))
+      .catch(err => console.error('Failed to load history:', err))
+      .finally(() => setHistoryLoading(false));
+  }, []);
+
   const onResizeStart = useCallback((e: React.MouseEvent) => {
     isResizing.current = true;
     startX.current = e.clientX;
@@ -132,8 +146,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const isRunning = activeRun?.status === 'running';
 
   const handleClose = () => {
-    setClosing(true);
-    setTimeout(() => onClose(), 220);
+    onClose();
   };
 
   // Handle incoming WebSocket messages
@@ -183,14 +196,48 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         break;
 
       case 'orchestrator_complete':
-        // Mark the entire run as completed
+        // Mark the entire run as completed and render pipeline on canvas
         {
           const totalDuration = Math.round((Date.now() - runStartTime.current) / 100) / 10;
+          const resultText = message.result || '';
+
+          // Try to parse pipeline JSON and render on canvas
+          const pipeline = parsePipelineToReactFlow(resultText);
+          let pipelineMeta: GenerationRun['pipelineMeta'] = undefined;
+
+          if (pipeline) {
+            pipelineMeta = {
+              stageCount: pipeline.nodes.length,
+              edgeCount: pipeline.edges.length,
+              stageTypes: pipeline.nodes.map(n => n.data.label as string),
+            };
+            const { initPipeline, pipelineId } = usePipelineStore.getState();
+            const id = pipelineId || `pipeline-${Date.now()}`;
+            initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
+          }
+
+          // Generate summaries for each step
+          const stageTypes = pipelineMeta?.stageTypes || [];
+          const stepSummaries: Record<string, string[]> = {
+            repo_analysis: ['Analyzed project structure', `Detected stack from prompt`],
+            pipeline_intelligence: pipelineMeta
+              ? [`${pipelineMeta.stageCount} stages · ${pipelineMeta.edgeCount} connections`, stageTypes.join(' → ')]
+              : ['Pipeline generated'],
+            validation: [],
+            export: [],
+          };
+
           setRuns(prev => prev.map(r => r.id !== runId ? r : {
             ...r,
             status: 'completed',
             duration: totalDuration,
-            result: message.result || '',
+            result: resultText,
+            pipelineMeta,
+            steps: r.steps.map(s => ({
+              ...s,
+              status: s.agent === 'validation' || s.agent === 'export' ? s.status : 'completed',
+              summary: stepSummaries[s.agent] || [],
+            })),
           }));
         }
         break;
@@ -241,11 +288,37 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
       wsService.executeAgent(prompt.trim());
       setPrompt('');
     } catch (error) {
-      console.error('Failed to execute agent:', error);
       setRuns(prev => prev.map(r => r.id !== runId ? r : { ...r, status: 'failed' }));
     }
   };
 
+
+  const handleValidate = () => {
+    if (!activeRun) return;
+
+    // Mark run as running again and set validation step to running
+    setRuns(prev => prev.map(r => r.id !== activeRun.id ? r : {
+      ...r,
+      status: 'running',
+      steps: r.steps.map(s => s.agent === 'validation'
+        ? { ...s, status: 'running' }
+        : s),
+    }));
+
+    // Send validation request via WebSocket
+    try {
+      wsService.send({
+        action: 'orchestrator',
+        operation: 'execute_pipeline',
+        payload: {
+          prompt: `Validate this pipeline: ${activeRun.result || ''}`,
+          validate: true,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to trigger validation:', error);
+    }
+  };
 
   const handleRestore = (run: GenerationRun) => {
     setActiveRunId(run.id);
@@ -261,7 +334,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className={`agent-panel${closing ? ' closing' : ''}`} style={{ width }}>
+    <div className="agent-panel" style={{ width }}>
       {/* Resize handle */}
       <div className="ap-resize-handle" onMouseDown={onResizeStart} />
 
@@ -297,7 +370,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         </button>
         <button className={`ap-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           <History size={12} /> History
-          {runs.length > 0 && <span className="ap-tab-badge">{runs.length}</span>}
+          {(runs.length + history.length) > 0 && <span className="ap-tab-badge">{runs.length + history.length}</span>}
         </button>
       </div>
 
@@ -367,20 +440,47 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
               {/* Execution timeline */}
               <div className="ap-timeline">
                 {activeRun.steps.map((step, i) => (
-                  <div key={i} className={`ap-timeline-step ${step.status}`}>
-                    <div className="ap-timeline-track">
-                      <div className={`ap-timeline-dot ${step.status}`}>{stepIcon(step.status)}</div>
-                      {i < activeRun.steps.length - 1 && <div className="ap-timeline-line" />}
-                    </div>
-                    <div className="ap-timeline-content">
-                      <div className="ap-timeline-label">
-                        {AGENT_META[step.agent]?.icon}
-                        <span>{step.label}</span>
-                        {step.duration && <span className="ap-timeline-dur">{step.duration}s</span>}
+                  <React.Fragment key={i}>
+                    <div className={`ap-timeline-step ${step.status}`}>
+                      <div className="ap-timeline-track">
+                        <div className={`ap-timeline-dot ${step.status}`}>{stepIcon(step.status)}</div>
+                        {i < activeRun.steps.length - 1 && <div className="ap-timeline-line" />}
                       </div>
-                      {step.detail && <div className="ap-timeline-detail">{step.detail}</div>}
+                      <div className="ap-timeline-content">
+                        <div className="ap-timeline-label">
+                          {AGENT_META[step.agent]?.icon}
+                          <span>{step.label}</span>
+                          {step.duration && <span className="ap-timeline-dur">{step.duration}s</span>}
+                        </div>
+                        {step.detail && <div className="ap-timeline-detail">{step.detail}</div>}
+                        {step.status === 'completed' && step.summary && step.summary.length > 0 && (
+                          <div className="ap-timeline-summary">
+                            {step.summary.map((item, j) => (
+                              <span key={j} className="ap-summary-chip">{item}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                    {/* Inline action buttons between pipeline_intelligence and validation */}
+                    {step.agent === 'pipeline_intelligence' &&
+                     activeRun.status === 'completed' &&
+                     activeRun.steps.find(s => s.agent === 'validation')?.status === 'idle' && (
+                      <div className="ap-timeline-actions">
+                        <div className="ap-timeline-track">
+                          <div className="ap-timeline-line" />
+                        </div>
+                        <div className="ap-timeline-actions-content">
+                          <button className="ap-inline-btn edit" onClick={handleClose}>
+                            <Code2 size={12} /> Edit on Canvas
+                          </button>
+                          <button className="ap-inline-btn validate" onClick={() => handleValidate()}>
+                            <ShieldCheck size={12} /> Validate
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             </>
@@ -391,7 +491,12 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
       {/* Tab: History */}
       {tab === 'history' && (
         <div className="ap-body">
-          {runs.length === 0 ? (
+          {historyLoading ? (
+            <div className="ap-empty">
+              <Loader size={32} className="spin" />
+              <p>Loading history...</p>
+            </div>
+          ) : runs.length === 0 && history.length === 0 ? (
             <div className="ap-empty">
               <History size={32} />
               <p>No runs yet</p>
@@ -399,6 +504,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             </div>
           ) : (
             <div className="ap-history-list">
+              {/* Current session runs */}
               {runs.map(run => (
                 <div key={run.id} className="ap-history-card">
                   <div className="ap-history-card-top">
@@ -418,6 +524,20 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                       <RotateCcw size={12} /> View Output
                     </button>
                   )}
+                </div>
+              ))}
+              {/* Persisted history from API */}
+              {history.map((item, i) => (
+                <div key={`hist-${i}`} className="ap-history-card">
+                  <div className="ap-history-card-top">
+                    <span className="ap-run-badge completed">
+                      <CheckCircle2 size={10} /> completed
+                    </span>
+                    <span className="ap-history-time">
+                      <Clock size={10} /> {new Date(item.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <p className="ap-history-prompt">"{item.prompt}"</p>
                 </div>
               ))}
             </div>

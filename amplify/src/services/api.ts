@@ -154,3 +154,22 @@ export const pipelineApi = {
     return apiService.delete<void>(`/pipelines/${id}`);
   },
 };
+
+/**
+ * Conversation history API calls
+ */
+export interface ConversationItem {
+  createdAt: string;
+  prompt: string;
+  response: string;
+  action: string;
+}
+
+export const conversationApi = {
+  /**
+   * List conversation history for the current user
+   */
+  list(limit: number = 20): Promise<{ conversations: ConversationItem[]; count: number }> {
+    return apiService.get<{ conversations: ConversationItem[]; count: number }>(`/conversations?limit=${limit}`);
+  },
+};
