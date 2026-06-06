@@ -99,8 +99,8 @@ resource "aws_iam_role_policy" "runtime_execution_policy" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = [
+        Effect = "Allow"
+        Action = [
           "aws-marketplace:ViewSubscriptions",
           "aws-marketplace:Subscribe",
           "aws-marketplace:Unsubscribe",
