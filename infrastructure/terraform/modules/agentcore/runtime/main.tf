@@ -202,6 +202,15 @@ resource "aws_bedrockagentcore_agent_runtime" "agent_runtime" {
       AWS_REGION   = var.aws_region
       PROJECT_NAME = var.project_name
       ENVIRONMENT  = var.environment
+      # Forces a runtime update when agent source changes (matches AWS sample).
+      SOURCE_HASH = local.source_hash
+
+      # Observability (ADOT). Turns on AgentCore span/log export to CloudWatch.
+      AGENT_OBSERVABILITY_ENABLED = tostring(var.enable_observability)
+      OTEL_PYTHON_DISTRO          = "aws_distro"
+      OTEL_PYTHON_CONFIGURATOR    = "aws_configurator"
+      OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
+      OTEL_RESOURCE_ATTRIBUTES    = "service.name=${local.runtime_name_safe}"
     },
     var.extra_env_vars
   )

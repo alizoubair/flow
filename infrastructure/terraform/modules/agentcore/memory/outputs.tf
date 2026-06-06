@@ -29,3 +29,8 @@ output "ssm_parameter_name" {
   description = "SSM parameter name for memory ID"
   value       = aws_ssm_parameter.memory_id.name
 }
+
+output "application_log_group_name" {
+  description = "CloudWatch log group receiving memory APPLICATION_LOGS (extraction/consolidation)"
+  value       = var.enable_log_delivery ? aws_cloudwatch_log_group.memory_app_logs[0].name : null
+}
