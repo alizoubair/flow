@@ -38,8 +38,11 @@ Creates Lambda functions, shared layers, and IAM roles for the Flow platform.
 
 ## Shared Layers
 
-- `pipeline-shared` — db_utils, validators (from `lambda/shared/`)
-- `websocket-shared` — boto3, httpx, websockets (from `lambda/websocket/python/`)
+- `pipeline-shared` — db_utils, validators (from `lambda/shared/`). Ships only
+  these `.py` helpers; boto3/botocore come from the python3.12 runtime.
+
+Websocket handlers use **no layer** — they only need boto3 + botocore.exceptions,
+which the python3.12 runtime already provides.
 
 ## Inputs
 

@@ -13,21 +13,8 @@ resource "aws_lambda_layer_version" "pipeline_shared" {
   compatible_runtimes = ["python3.12"]
 }
 
-# Shared layer for websocket handlers (websockets library)
-
-data "archive_file" "websocket_shared_layer" {
-  type        = "zip"
-  source_dir  = "${var.lambda_src_path}/websocket"
-  output_path = "${var.lambda_src_path}/.build/websocket-shared-layer.zip"
-  excludes    = ["connect", "disconnect", "default", "orchestrator", "requirements.txt"]
-}
-
-resource "aws_lambda_layer_version" "websocket_shared" {
-  layer_name          = "${var.app_name}-websocket-shared"
-  filename            = data.archive_file.websocket_shared_layer.output_path
-  source_code_hash    = data.archive_file.websocket_shared_layer.output_base64sha256
-  compatible_runtimes = ["python3.12"]
-}
+# Note: websocket handlers use no layer. They only import boto3 +
+# botocore.exceptions, which the python3.12 runtime already provides.
 
 # Zip archives, one per function
 
