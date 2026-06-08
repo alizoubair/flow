@@ -47,6 +47,7 @@ def handler(payload: dict, context) -> str:
         return 'Please provide a prompt.'
 
     logger.info(f'Orchestrator invoked: user={user_id} session={session_id}')
+    logger.info(f'Prompt preview: {prompt[:200]}')
 
     # WebSocket connection info for streaming progress updates to the client
     connection_id = payload.get('connectionId', '')
@@ -60,4 +61,11 @@ def handler(payload: dict, context) -> str:
     )
 
     result = orchestrator(prompt)
-    return str(result)
+    response = str(result)
+    logger.info(f'Orchestrator response length: {len(response)}')
+    logger.info(f'Response preview: {response[:300]}')
+    return response
+
+
+if __name__ == '__main__':
+    app.run()

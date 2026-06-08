@@ -23,6 +23,7 @@ import logging
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
 from .agent import build_agent
+from .tools.builder_tools import new_pipeline_state, assemble_pipeline
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -42,17 +43,22 @@ def handler(payload: dict, context) -> str:
     Returns:
         JSON string with the generated pipeline (stages + edges)
     """
-    analysis = payload.get('analysis', {})
+    analysis = payload.get('analysis') or payload.get('task') or {}
 
     if not analysis:
         return json.dumps({'error': 'analysis is required'})
 
     logger.info(f'Generating pipeline for: {analysis.get("language", "unknown")} / {analysis.get("framework", "unknown")}')
 
-    agent = build_agent()
-    result = agent(f'Generate a CI/CD pipeline for this project:\n{json.dumps(analysis, indent=2)}')
+    state = new_pipeline_state()
+    agent = build_agent(state)
+    agent(f'Generate a CI/CD pipeline for this project:\n{json.dumps(analysis, indent=2)}')
 
-    return str(result)
+    if not state['stages']:
+        logger.warning('Agent produced no stages via builder tools.')
+        return json.dumps({'error': 'pipeline generation produced no stages'})
+
+    return json.dumps(assemble_pipeline(state))
 
 
 if __name__ == '__main__':

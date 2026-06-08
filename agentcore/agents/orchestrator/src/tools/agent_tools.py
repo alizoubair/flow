@@ -57,15 +57,18 @@ def build_tools(user_id: str, session_id: str) -> list:
         Returns:
             Pipeline JSON with name, stages, and edges ready for canvas rendering.
         """
+        logger.info(f'generate_pipeline called. Analysis keys: {list(repo_analysis.keys()) if isinstance(repo_analysis, dict) else "N/A"}')
         if not PIPELINE_GEN_RUNTIME_ARN:
             return {'error': 'Pipeline generation agent not configured'}
 
-        return call_agent(
+        result = call_agent(
             runtime_arn=PIPELINE_GEN_RUNTIME_ARN,
             task=repo_analysis,
             user_id=user_id,
             session_id=session_id,
         )
+        logger.info(f'generate_pipeline result preview: {str(result)[:200]}')
+        return result
 
     @tool
     def validate_pipeline(pipeline: dict) -> dict:
@@ -78,15 +81,18 @@ def build_tools(user_id: str, session_id: str) -> list:
         Returns:
             Validation result with valid (bool), score (0-100), checks, and suggestions.
         """
+        logger.info(f'validate_pipeline called. Pipeline name: {pipeline.get("name", "unknown") if isinstance(pipeline, dict) else "N/A"}')
         if not VALIDATION_RUNTIME_ARN:
             return {'error': 'Validation agent not configured'}
 
-        return call_agent(
+        result = call_agent(
             runtime_arn=VALIDATION_RUNTIME_ARN,
             task={'pipeline': pipeline},
             user_id=user_id,
             session_id=session_id,
         )
+        logger.info(f'validate_pipeline result preview: {str(result)[:200]}')
+        return result
 
     @tool
     def export_pipeline(pipeline: dict, target: str) -> dict:
@@ -101,15 +107,19 @@ def build_tools(user_id: str, session_id: str) -> list:
         Returns:
             Export result with target, filename, content, and summary.
         """
+        logger.info(f'export_pipeline called. Target: {target}, stages: {len(pipeline.get("stages", [])) if isinstance(pipeline, dict) else "N/A"}')
         if not EXPORT_RUNTIME_ARN:
+            logger.warning('EXPORT_RUNTIME_ARN not configured')
             return {'error': 'Export agent not configured'}
 
-        return call_agent(
+        result = call_agent(
             runtime_arn=EXPORT_RUNTIME_ARN,
             task={'pipeline': pipeline, 'target': target},
             user_id=user_id,
             session_id=session_id,
         )
+        logger.info(f'export_pipeline result preview: {str(result)[:200]}')
+        return result
 
     return [
         analyze_repository,
