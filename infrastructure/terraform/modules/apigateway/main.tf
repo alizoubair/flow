@@ -135,7 +135,9 @@ resource "aws_lambda_permission" "http_api" {
 
 locals {
   conversation_routes = {
-    "GET /conversations" = var.conversation_function_arns["conversation-list"]
+    "GET /conversations"         = var.conversation_function_arns["conversation-list"]
+    "GET /conversations/{id}"    = var.conversation_function_arns["conversation-get"]
+    "DELETE /conversations/{id}" = var.conversation_function_arns["conversation-delete"]
   }
 }
 
