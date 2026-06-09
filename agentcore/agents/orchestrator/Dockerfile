@@ -23,5 +23,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/ping')"
 
-# Run via BedrockAgentCoreApp which serves /invocations and /ping on port 8080
-CMD ["python", "-c", "from src.handler import app; app.run()"]
+# Run via BedrockAgentCoreApp which serves /invocations and /ping on port 8080.
+# Wrapped in opentelemetry-instrument (ADOT) so AgentCore memory/runtime spans
+# and logs are exported to CloudWatch. The runtime injects the OTLP endpoint
+# when AGENT_OBSERVABILITY_ENABLED=true.
+CMD ["opentelemetry-instrument", "python", "-c", "from src.handler import app; app.run()"]
