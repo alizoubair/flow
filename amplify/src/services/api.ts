@@ -172,4 +172,19 @@ export const conversationApi = {
   list(limit: number = 20): Promise<{ conversations: ConversationItem[]; count: number }> {
     return apiService.get<{ conversations: ConversationItem[]; count: number }>(`/conversations?limit=${limit}`);
   },
+
+  /**
+   * Get a single conversation (full, untruncated response) so the generated
+   * pipeline can be reopened on the canvas. The id is the createdAt timestamp.
+   */
+  get(id: string): Promise<ConversationItem> {
+    return apiService.get<ConversationItem>(`/conversations/${encodeURIComponent(id)}`);
+  },
+
+  /**
+   * Delete a conversation from the user's history. The id is the createdAt timestamp.
+   */
+  remove(id: string): Promise<{ deleted: string }> {
+    return apiService.delete<{ deleted: string }>(`/conversations/${encodeURIComponent(id)}`);
+  },
 };
