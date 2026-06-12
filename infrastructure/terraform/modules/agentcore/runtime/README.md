@@ -10,7 +10,8 @@ Creates a Bedrock AgentCore Runtime for hosting AI agents in the Flow platform.
 - `aws_iam_role` — execution role for the runtime + CodeBuild service role
 - `aws_cloudwatch_log_group` — runtime and CodeBuild logs
 - `aws_ssm_parameter` — stores runtime ARN and ID for discovery
-- `null_resource` — uploads source to S3 and triggers CodeBuild
+- `archive_file` + `aws_s3_object` — packages and uploads source to S3 for CodeBuild
+- `null_resource` — triggers CodeBuild and waits for the image build
 
 ## Runtime Modes
 

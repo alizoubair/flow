@@ -182,6 +182,12 @@ variable "agent_source_path" {
   default     = ""
 }
 
+variable "additional_source_paths" {
+  description = "Extra directories to bundle into the agent source zip (e.g. shared libraries)."
+  type        = list(string)
+  default     = []
+}
+
 variable "ws_api_execution_arn" {
   description = "WebSocket API execution ARN for ManageConnections permission (orchestrator only)"
   type        = string
