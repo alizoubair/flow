@@ -1,0 +1,50 @@
+description: "Inspect GitHub repositories: metadata, file tree, file contents, and file existence checks."
+tools:
+  - name: get_repo_info
+    description: "Get basic GitHub repository metadata (language, description, default branch, topics)."
+    input_type: object
+    input_description: "GitHub repository to inspect."
+    properties:
+      - name: repo_url
+        type: string
+        description: "Full GitHub repository URL, e.g. https://github.com/owner/repo."
+        required: true
+  - name: get_file_tree
+    description: "List files and directories at a path in the GitHub repository (non-recursive). Use an empty path for the root."
+    input_type: object
+    input_description: "Directory listing request."
+    properties:
+      - name: repo_url
+        type: string
+        description: "Full GitHub repository URL."
+        required: true
+      - name: path
+        type: string
+        description: "Directory path within the repo. Empty string lists the root."
+        required: false
+  - name: read_file_content
+    description: "Read the content of a specific file from GitHub (truncated to 5000 characters). Use for package.json, requirements.txt, Dockerfile, etc."
+    input_type: object
+    input_description: "File read request."
+    properties:
+      - name: repo_url
+        type: string
+        description: "Full GitHub repository URL."
+        required: true
+      - name: file_path
+        type: string
+        description: "Path to the file, e.g. 'package.json' or 'src/main.py'."
+        required: true
+  - name: check_files_exist
+    description: "Check which of the given paths exist in the GitHub repository. Useful for detecting Dockerfile, CI configs, etc."
+    input_type: object
+    input_description: "Existence check request."
+    properties:
+      - name: repo_url
+        type: string
+        description: "Full GitHub repository URL."
+        required: true
+      - name: file_paths
+        type: array
+        description: "List of file/directory paths to check, e.g. ['Dockerfile', '.github/workflows']."
+        required: true
