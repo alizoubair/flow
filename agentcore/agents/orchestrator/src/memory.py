@@ -67,11 +67,14 @@ class MemoryHook(HookProvider):
             role = msg.get('role', 'user').upper()
             content = msg.get('content', '')
 
-            # Extract text from content (may be a list of blocks or a string)
+            # Extract text from content. Strands/Bedrock content blocks are
+            # dicts like {'text': '...'}, {'toolUse': {...}}, {'toolResult': {...}}
+            # with no 'type' key, so we key off the presence of a 'text' field.
+            # This also naturally skips tool-use / tool-result blocks.
             if isinstance(content, list):
                 text_parts = [
-                    block.get('text', '') for block in content
-                    if isinstance(block, dict) and block.get('type') == 'text'
+                    block['text'] for block in content
+                    if isinstance(block, dict) and isinstance(block.get('text'), str)
                 ]
                 text = ' '.join(text_parts)
             else:
