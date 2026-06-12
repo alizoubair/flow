@@ -155,3 +155,30 @@ resource "aws_cognito_user_pool_client" "app" {
     aws_cognito_identity_provider.github,
   ]
 }
+
+# Resource server for AgentCore Gateway M2M access
+
+resource "aws_cognito_resource_server" "gateway" {
+  identifier   = "${var.app_name}-gateway"
+  name         = "${var.app_name} Gateway"
+  user_pool_id = aws_cognito_user_pool.main.id
+
+  scope {
+    scope_name        = "invoke"
+    scope_description = "Invoke the AgentCore MCP Gateway"
+  }
+}
+
+# M2M client used by agent runtimes to call the MCP Gateway
+
+resource "aws_cognito_user_pool_client" "gateway_m2m" {
+  name         = "${var.app_name}-gateway-m2m"
+  user_pool_id = aws_cognito_user_pool.main.id
+
+  generate_secret = true
+
+  allowed_oauth_flows                  = ["client_credentials"]
+  allowed_oauth_scopes                 = ["${aws_cognito_resource_server.gateway.identifier}/invoke"]
+  supported_identity_providers         = ["COGNITO"]
+  allowed_oauth_flows_user_pool_client = true
+}
