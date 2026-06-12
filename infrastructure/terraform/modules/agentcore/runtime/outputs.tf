@@ -64,3 +64,13 @@ output "codebuild_role_arn" {
   description = "ARN of the CodeBuild service role"
   value       = var.enable_codebuild ? aws_iam_role.codebuild_role[0].arn : null
 }
+
+output "source_hash" {
+  description = "Hash of agent source files used as the immutable container image tag"
+  value       = local.source_hash
+}
+
+output "container_uri" {
+  description = "Full ECR container URI deployed to the AgentCore runtime"
+  value       = local.final_container_uri
+}

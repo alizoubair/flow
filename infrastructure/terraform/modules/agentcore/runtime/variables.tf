@@ -164,6 +164,12 @@ variable "extra_env_vars" {
   default     = {}
 }
 
+variable "enable_observability" {
+  description = "Enable ADOT observability (span/log export to CloudWatch). Requires aws-opentelemetry-distro in the agent image and launch via opentelemetry-instrument."
+  type        = bool
+  default     = true
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number

@@ -9,8 +9,10 @@ locals {
     if !can(regex("(__pycache__|.git|.pytest_cache|.pyc|.pyo|.egg-info)", f))
   ])) : "no-source"
 
-  # Use provided container_uri or construct from ECR repository
-  final_container_uri = var.container_uri != "" ? var.container_uri : "${aws_ecr_repository.container_repo[0].repository_url}:${var.image_tag}"
+  # Hash-tagged images force Terraform to update the runtime when agent source changes.
+  image_tag = var.container_uri != "" ? var.image_tag : local.source_hash
+
+  final_container_uri = var.container_uri != "" ? var.container_uri : "${aws_ecr_repository.container_repo[0].repository_url}:${local.image_tag}"
 }
 
 # ECR Repository
@@ -79,7 +81,12 @@ resource "aws_codebuild_project" "container_build" {
 
     environment_variable {
       name  = "IMAGE_TAG"
-      value = var.image_tag
+      value = local.image_tag
+    }
+
+    environment_variable {
+      name  = "SOURCE_HASH"
+      value = local.source_hash
     }
   }
 
@@ -118,17 +125,14 @@ resource "null_resource" "upload_source" {
   provisioner "local-exec" {
     working_dir = var.agent_source_path
     environment = {
-      AWS_PROFILE = var.aws_profile
+      AWS_PROFILE    = var.aws_profile
+      COMPONENT_NAME = var.component_name
+      S3_BUCKET      = var.source_s3_bucket
+      S3_KEY         = var.source_s3_key
+      AWS_REGION_VAR = var.aws_region
     }
-    command     = <<-EOT
-      set -e
-      rm -f /tmp/${var.component_name}-source.zip
-      zip -r /tmp/${var.component_name}-source.zip . \
-        -x 'venv/*' '.venv/*' '__pycache__/*' '*.pyc' '.git/*' '*.egg-info/*' '.pytest_cache/*'
-      aws s3 cp /tmp/${var.component_name}-source.zip \
-        s3://${var.source_s3_bucket}/${var.source_s3_key} \
-        --region ${var.aws_region}
-    EOT
+    interpreter = ["bash", "-c"]
+    command     = "rm -f /tmp/$COMPONENT_NAME-source.zip && zip -r /tmp/$COMPONENT_NAME-source.zip . -x 'venv/*' '.venv/*' '__pycache__/*' '*.pyc' '.git/*' '*.egg-info/*' '.pytest_cache/*' && aws s3 cp /tmp/$COMPONENT_NAME-source.zip s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION_VAR"
   }
 
   depends_on = [
@@ -146,29 +150,15 @@ resource "null_resource" "build_and_wait" {
 
   provisioner "local-exec" {
     environment = {
-      AWS_PROFILE = var.aws_profile
+      AWS_PROFILE    = var.aws_profile
+      PROJECT_NAME   = "${local.resource_prefix}-build"
+      AWS_REGION_VAR = var.aws_region
+      COMPONENT_NAME = var.component_name
+      ECR_REPO_NAME  = aws_ecr_repository.container_repo[0].name
+      SOURCE_HASH    = local.source_hash
     }
-    command = <<-EOT
-      set -e
-      echo "Starting CodeBuild for ${var.component_name}..."
-      BUILD_ID=$(aws codebuild start-build \
-        --project-name "${local.resource_prefix}-build" \
-        --region ${var.aws_region} \
-        --query 'build.id' --output text)
-      for i in $(seq 1 90); do
-        STATUS=$(aws codebuild batch-get-builds --ids "$BUILD_ID" --region ${var.aws_region} \
-          --query 'builds[0].buildStatus' --output text)
-        echo "  build status: $STATUS"
-
-        case "$STATUS" in
-          SUCCEEDED) exit 0 ;;
-          FAILED|FAULT|STOPPED|TIMED_OUT) echo "build failed: $STATUS"; exit 1 ;;
-        esac
-        sleep 10
-      done
-      echo "build timeout"
-      exit 1
-    EOT
+    interpreter = ["bash", "-c"]
+    command     = "if aws ecr describe-images --repository-name \"$ECR_REPO_NAME\" --image-ids imageTag=\"$SOURCE_HASH\" --region \"$AWS_REGION_VAR\" >/dev/null 2>&1; then echo \"Image $ECR_REPO_NAME:$SOURCE_HASH exists, skipping CodeBuild.\"; exit 0; fi; echo \"Starting CodeBuild for $COMPONENT_NAME...\"; BUILD_ID=$(aws codebuild start-build --project-name \"$PROJECT_NAME\" --region \"$AWS_REGION_VAR\" --query 'build.id' --output text); echo \"Build ID: $BUILD_ID\"; for i in $(seq 1 90); do STATUS=$(aws codebuild batch-get-builds --ids \"$BUILD_ID\" --region \"$AWS_REGION_VAR\" --query 'builds[0].buildStatus' --output text); echo \"  build status: $STATUS\"; case \"$STATUS\" in SUCCEEDED) exit 0;; FAILED|FAULT|STOPPED|TIMED_OUT) echo \"build failed: $STATUS\"; exit 1;; esac; sleep 10; done; echo \"build timeout\"; exit 1"
   }
 
   depends_on = [
@@ -212,6 +202,15 @@ resource "aws_bedrockagentcore_agent_runtime" "agent_runtime" {
       AWS_REGION   = var.aws_region
       PROJECT_NAME = var.project_name
       ENVIRONMENT  = var.environment
+      # Forces a runtime update when agent source changes (matches AWS sample).
+      SOURCE_HASH = local.source_hash
+
+      # Observability (ADOT). Turns on AgentCore span/log export to CloudWatch.
+      AGENT_OBSERVABILITY_ENABLED = tostring(var.enable_observability)
+      OTEL_PYTHON_DISTRO          = "aws_distro"
+      OTEL_PYTHON_CONFIGURATOR    = "aws_configurator"
+      OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
+      OTEL_RESOURCE_ATTRIBUTES    = "service.name=${local.runtime_name_safe}"
     },
     var.extra_env_vars
   )

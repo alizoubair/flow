@@ -18,6 +18,18 @@ variable "event_expiry_days" {
   default     = 90
 }
 
+variable "enable_log_delivery" {
+  description = "Deliver AgentCore memory APPLICATION_LOGS (extraction/consolidation) to CloudWatch Logs."
+  type        = bool
+  default     = true
+}
+
+variable "log_retention_days" {
+  description = "Retention for the memory application log group"
+  type        = number
+  default     = 30
+}
+
 # Tags
 
 variable "tags" {

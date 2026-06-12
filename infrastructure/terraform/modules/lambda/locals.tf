@@ -9,7 +9,10 @@ locals {
       runtime     = "python3.12"
       timeout     = 60
       memory_size = 512
-      layer_arn   = aws_lambda_layer_version.websocket_shared.arn # shared layer with websockets
+      # No layer: handlers only use boto3 + botocore.exceptions, both provided
+      # by the python3.12 runtime. A bundled layer previously shipped a broken
+      # urllib3 that shadowed the runtime's and caused import errors.
+      layer_arn   = null
       env_vars = {
         CONNECTIONS_TABLE          = var.ws_connections_table_name
         CONVERSATIONS_TABLE        = var.conversations_table_name
@@ -64,7 +67,7 @@ locals {
     }
 
     conversation = {
-      functions   = ["list"]
+      functions   = ["list", "get", "delete"]
       src_subdir  = "conversations"
       runtime     = "python3.12"
       timeout     = 10
