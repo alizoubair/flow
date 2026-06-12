@@ -557,6 +557,25 @@ body.dark-theme .ap-summary-chip {
   transform: translateY(-1px);
 }
 
+.ap-inline-btn.export {
+  background: #ffffff;
+  color: #374151;
+  border: 1.5px solid #d4d4d4;
+  font-size: 10.5px;
+  padding: 5px 8px;
+}
+
+.ap-inline-btn.export:hover {
+  background: #f5f5f5;
+  border-color: #6366f1;
+  color: #6366f1;
+  transform: translateY(-1px);
+}
+
+.ap-export-targets {
+  flex-wrap: wrap;
+}
+
 /* Output card */
 .ap-output-card {
   border: 1px solid #e5e7eb;
@@ -770,6 +789,102 @@ body.dark-theme .ap-summary-chip {
   border-color: #d1d5db;
 }
 
+.ap-history-top-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ap-history-menu-wrap {
+  position: relative;
+}
+
+.ap-history-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ap-history-menu-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.ap-history-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 130px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  z-index: 20;
+}
+
+.ap-history-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #374151;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ap-history-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.ap-history-menu-item.danger {
+  color: #dc2626;
+}
+
+.ap-history-menu-item.danger:hover {
+  background: #fef2f2;
+}
+
+body.dark-theme .ap-history-menu-btn:hover {
+  background: #374151;
+  color: #e5e7eb;
+}
+
+body.dark-theme .ap-history-menu {
+  background: #1f2937;
+  border-color: #4b5563;
+}
+
+body.dark-theme .ap-history-menu-item {
+  color: #e5e7eb;
+}
+
+body.dark-theme .ap-history-menu-item:hover {
+  background: #374151;
+}
+
+body.dark-theme .ap-history-menu-item.danger {
+  color: #f87171;
+}
+
+body.dark-theme .ap-history-menu-item.danger:hover {
+  background: #422020;
+}
+
 /* Spinner */
 .spin {
   animation: spin 0.75s linear infinite;
@@ -900,6 +1015,111 @@ body.dark-theme .ap-inline-btn.validate {
 body.dark-theme .ap-inline-btn.validate:hover {
   background: #4b5563;
   border-color: #6b7280;
+}
+
+body.dark-theme .ap-inline-btn.export {
+  background: #374151;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+body.dark-theme .ap-inline-btn.export:hover {
+  background: #4b5563;
+  border-color: #818cf8;
+  color: #818cf8;
+}
+
+/* Export result preview */
+.ap-export-preview {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.ap-export-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ap-export-filename {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #374151;
+  font-family: 'Fira Code', 'Cascadia Code', monospace;
+}
+
+.ap-export-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.ap-export-action-btn {
+  padding: 4px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+  background: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ap-export-action-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.ap-export-code {
+  margin: 0;
+  padding: 12px;
+  font-size: 11px;
+  font-family: 'Fira Code', 'Cascadia Code', 'Menlo', monospace;
+  line-height: 1.6;
+  color: #1f2937;
+  background: #fafafa;
+  overflow-x: hidden;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
+
+body.dark-theme .ap-export-preview {
+  border-color: #374151;
+}
+
+body.dark-theme .ap-export-header {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+body.dark-theme .ap-export-filename {
+  color: #e5e7eb;
+}
+
+body.dark-theme .ap-export-action-btn {
+  background: #1f2937;
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+body.dark-theme .ap-export-action-btn:hover {
+  background: #374151;
+  color: #e5e7eb;
+}
+
+body.dark-theme .ap-export-code {
+  background: #111827;
+  color: #e5e7eb;
 }
 
 body.dark-theme .ap-output-card {

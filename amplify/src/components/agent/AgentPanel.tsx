@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   X, Play, Loader, Bot, GitBranch, ShieldCheck,
   FileCode2, Search, Clock, RotateCcw, ChevronRight,
-  Circle, CheckCircle2, XCircle, Code2, History, Workflow
+  Circle, CheckCircle2, XCircle, Code2, History, Workflow, Trash2, MoreHorizontal
 } from 'lucide-react';
 import { wsService } from '../../services/websocket';
 import { conversationApi, ConversationItem } from '../../services/api';
@@ -26,6 +26,7 @@ interface GenerationRun {
   steps: AgentStep[];
   result?: string;
   pipelineMeta?: { stageCount: number; edgeCount: number; stageTypes: string[] };
+  exportResult?: { target: string; filename: string; content: string; summary: string };
   createdAt: Date;
   duration?: number;
 }
@@ -49,7 +50,7 @@ const AGENT_META: Record<string, { label: string; icon: React.ReactNode }> = {
 };
 
 const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
-  const [tab, setTab] = useState<'generate' | 'output' | 'history'>('generate');
+  const [tab, setTab] = useState<'generate' | 'output' | 'export' | 'history'>('generate');
   const [prompt, setPrompt] = useState('');
   const [runs, setRuns] = useState<GenerationRun[]>([]);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
@@ -59,6 +60,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const [wsError, setWsError] = useState<string | null>(null);
   const [history, setHistory] = useState<ConversationItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -201,7 +203,130 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
           const totalDuration = Math.round((Date.now() - runStartTime.current) / 100) / 10;
           const resultText = message.result || '';
 
-          // Try to parse pipeline JSON and render on canvas
+          console.log('[AgentPanel] orchestrator_complete resultText:', resultText.substring(0, 500));
+
+          // Try to detect what kind of result this is
+          let parsedResult: any = null;
+          try {
+            let cleaned = resultText.trim();
+            if ((cleaned.startsWith('"') && cleaned.endsWith('"'))) {
+              try { cleaned = JSON.parse(cleaned); } catch {}
+            }
+            if (cleaned.startsWith('```')) {
+              cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+            }
+            parsedResult = JSON.parse(cleaned);
+            console.log('[AgentPanel] parsedResult keys:', Object.keys(parsedResult));
+          } catch (e) {
+            console.log('[AgentPanel] Failed to parse result as JSON:', e);
+          }
+
+          // Check if this is an export result (structured JSON)
+          if (parsedResult && parsedResult.filename && parsedResult.content) {
+            setRuns(prev => prev.map(r => r.id !== runId ? r : {
+              ...r,
+              status: 'completed',
+              duration: totalDuration,
+              result: resultText,
+              exportResult: parsedResult,
+              steps: r.steps.map(s => s.agent === 'export'
+                ? { ...s, status: 'completed', summary: [parsedResult.filename, parsedResult.summary || ''] }
+                : s),
+            }));
+            setTab('export');
+            break;
+          }
+
+          // Check if this looks like an export result (YAML/config content in markdown fences)
+          {
+            const lowerText = resultText.toLowerCase();
+            const isYamlExport = resultText.includes('```yaml') || resultText.includes('```groovy') ||
+              (lowerText.includes('jobs:') && lowerText.includes('runs-on:')) ||
+              (lowerText.includes('stages:') && lowerText.includes('script:')) ||
+              lowerText.includes('pipeline {') ||
+              lowerText.includes('pipelines:');
+
+            if (isYamlExport) {
+              let content = resultText.trim();
+              if (content.startsWith('```')) {
+                content = content.replace(/^```(?:yaml|groovy|json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+              }
+              const targetMap: Record<string, string> = {
+                'github-actions': '.github/workflows/ci.yml',
+                'gitlab-ci': '.gitlab-ci.yml',
+                'aws-codepipeline': 'buildspec.yml',
+                'jenkinsfile': 'Jenkinsfile',
+                'bitbucket-pipelines': 'bitbucket-pipelines.yml',
+              };
+              const detectedTarget = Object.keys(targetMap).find(t =>
+                lowerText.includes(t) || lowerText.includes(t.replace(/-/g, ' '))
+              ) || 'github-actions';
+              const filename = targetMap[detectedTarget];
+              setRuns(prev => prev.map(r => r.id !== runId ? r : {
+                ...r,
+                status: 'completed',
+                duration: totalDuration,
+                result: resultText,
+                exportResult: { target: detectedTarget, filename, content, summary: 'Pipeline exported' },
+                steps: r.steps.map(s => s.agent === 'export'
+                  ? { ...s, status: 'completed', summary: [filename, 'Export complete'] }
+                  : s),
+              }));
+              setTab('export');
+              break;
+            }
+          }
+
+          // Check if export step was running — treat any result as export output
+          {
+            const currentRun = activeRunIdRef.current ? (
+              (() => { let r: GenerationRun | undefined; setRuns(prev => { r = prev.find(x => x.id === runId); return prev; }); return r; })()
+            ) : null;
+            const exportStepRunning = currentRun?.steps.find(s => s.agent === 'export')?.status === 'running';
+            if (exportStepRunning) {
+              const targetMap: Record<string, string> = {
+                'github-actions': '.github/workflows/ci.yml',
+                'gitlab-ci': '.gitlab-ci.yml',
+                'aws-codepipeline': 'buildspec.yml',
+                'jenkinsfile': 'Jenkinsfile',
+                'bitbucket-pipelines': 'bitbucket-pipelines.yml',
+              };
+              const lowerText = resultText.toLowerCase();
+              const detectedTarget = Object.keys(targetMap).find(t =>
+                lowerText.includes(t) || lowerText.includes(t.replace(/-/g, ' '))
+              ) || 'github-actions';
+              const filename = targetMap[detectedTarget];
+              setRuns(prev => prev.map(r => r.id !== runId ? r : {
+                ...r,
+                status: 'completed',
+                duration: totalDuration,
+                result: resultText,
+                exportResult: { target: detectedTarget, filename, content: resultText, summary: 'Exported pipeline' },
+                steps: r.steps.map(s => s.agent === 'export'
+                  ? { ...s, status: 'completed', summary: [filename, 'Export complete'] }
+                  : s),
+              }));
+              break;
+            }
+          }
+
+          // Check if this is a validation result
+          if (parsedResult && parsedResult.checks && parsedResult.score !== undefined) {
+            const passedCount = parsedResult.checks.filter((c: any) => c.passed).length;
+            const totalChecks = parsedResult.checks.length;
+            setRuns(prev => prev.map(r => r.id !== runId ? r : {
+              ...r,
+              status: 'completed',
+              duration: totalDuration,
+              result: resultText,
+              steps: r.steps.map(s => s.agent === 'validation'
+                ? { ...s, status: 'completed', summary: [`Score: ${parsedResult.score}/100`, `${passedCount}/${totalChecks} checks passed`] }
+                : s),
+            }));
+            break;
+          }
+
+          // Default: pipeline generation result
           const pipeline = parsePipelineToReactFlow(resultText);
           let pipelineMeta: GenerationRun['pipelineMeta'] = undefined;
 
@@ -320,11 +445,82 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     }
   };
 
+  const handleExport = (target: string) => {
+    if (!activeRun) return;
+
+    // Mark export step as running
+    setRuns(prev => prev.map(r => r.id !== activeRun.id ? r : {
+      ...r,
+      status: 'running',
+      steps: r.steps.map(s => s.agent === 'export'
+        ? { ...s, status: 'running', detail: `Exporting to ${target}...` }
+        : s),
+    }));
+
+    // Use the original pipeline result from generation — strip markdown fences
+    let pipelineResult = activeRun.result || '';
+    const cleaned = pipelineResult.trim();
+    if (cleaned.startsWith('```')) {
+      pipelineResult = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
+    }
+    // Also unwrap if double-encoded
+    if (pipelineResult.startsWith('"') && pipelineResult.endsWith('"')) {
+      try { pipelineResult = JSON.parse(pipelineResult); } catch {}
+    }
+
+    // Send export request via WebSocket
+    try {
+      wsService.send({
+        action: 'orchestrator',
+        operation: 'execute_pipeline',
+        payload: {
+          prompt: `Export this pipeline to ${target} format:\n${pipelineResult}`,
+          export: true,
+          target,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to trigger export:', error);
+    }
+  };
+
   const handleRestore = (run: GenerationRun) => {
     setActiveRunId(run.id);
     activeRunIdRef.current = run.id;
     setTab('output');
   };
+
+  // Reopen a past generation: fetch the full record and render its pipeline.
+  const handleReopen = async (item: ConversationItem) => {
+    try {
+      const full = await conversationApi.get(item.createdAt);
+      const pipeline = parsePipelineToReactFlow(full.response || '');
+      if (pipeline) {
+        const { initPipeline, pipelineId } = usePipelineStore.getState();
+        const id = pipelineId || `pipeline-${Date.now()}`;
+        initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
+      }
+    } catch (err) {
+      console.error('Failed to reopen conversation:', err);
+    }
+  };
+
+  const handleDeleteHistory = async (item: ConversationItem) => {
+    try {
+      await conversationApi.remove(item.createdAt);
+      setHistory(prev => prev.filter(h => h.createdAt !== item.createdAt));
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+    }
+  };
+
+  // Close the history item menu when clicking anywhere else.
+  useEffect(() => {
+    if (!menuOpenId) return;
+    const close = () => setMenuOpenId(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuOpenId]);
 
   const stepIcon = (status: AgentStep['status']) => {
     if (status === 'running')   return <Loader size={13} className="spin" />;
@@ -367,6 +563,10 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         <button className={`ap-tab ${tab === 'output' ? 'active' : ''}`} onClick={() => setTab('output')}>
           <Code2 size={12} /> Output
           {activeRun?.status === 'completed' && <span className="ap-tab-dot" />}
+        </button>
+        <button className={`ap-tab ${tab === 'export' ? 'active' : ''}`} onClick={() => setTab('export')}>
+          <FileCode2 size={12} /> Export
+          {activeRun?.exportResult && <span className="ap-tab-dot" />}
         </button>
         <button className={`ap-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           <History size={12} /> History
@@ -480,10 +680,77 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                         </div>
                       </div>
                     )}
+                    {/* Export target buttons after validation completes */}
+                    {step.agent === 'validation' &&
+                     step.status === 'completed' &&
+                     activeRun.steps.find(s => s.agent === 'export')?.status === 'idle' && (
+                      <div className="ap-timeline-actions">
+                        <div className="ap-timeline-track">
+                          <div className="ap-timeline-line" />
+                        </div>
+                        <div className="ap-timeline-actions-content ap-export-targets">
+                          <button className="ap-inline-btn export" onClick={() => handleExport('github-actions')}>
+                            GitHub Actions
+                          </button>
+                          <button className="ap-inline-btn export" onClick={() => handleExport('gitlab-ci')}>
+                            GitLab CI
+                          </button>
+                          <button className="ap-inline-btn export" onClick={() => handleExport('aws-codepipeline')}>
+                            CodePipeline
+                          </button>
+                          <button className="ap-inline-btn export" onClick={() => handleExport('jenkinsfile')}>
+                            Jenkinsfile
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </React.Fragment>
                 ))}
               </div>
+
             </>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Export */}
+      {tab === 'export' && (
+        <div className="ap-body">
+          {!activeRun?.exportResult ? (
+            <div className="ap-empty">
+              <FileCode2 size={32} />
+              <p>No export yet</p>
+              <span>Validate your pipeline then select a target platform to export.</span>
+            </div>
+          ) : (
+            <div className="ap-export-preview">
+              <div className="ap-export-header">
+                <span className="ap-export-filename">{activeRun.exportResult.filename}</span>
+                <div className="ap-export-actions">
+                  <button
+                    className="ap-export-action-btn"
+                    onClick={() => navigator.clipboard.writeText(activeRun.exportResult!.content)}
+                  >
+                    Copy
+                  </button>
+                  <button
+                    className="ap-export-action-btn"
+                    onClick={() => {
+                      const blob = new Blob([activeRun.exportResult!.content], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = activeRun.exportResult!.filename.split('/').pop() || 'pipeline.yml';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Download
+                  </button>
+                </div>
+              </div>
+              <pre className="ap-export-code">{activeRun.exportResult.content}</pre>
+            </div>
           )}
         </div>
       )}
@@ -527,15 +794,45 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                 </div>
               ))}
               {/* Persisted history from API */}
-              {history.map((item, i) => (
-                <div key={`hist-${i}`} className="ap-history-card">
+              {history.map((item) => (
+                <div key={`hist-${item.createdAt}`} className="ap-history-card">
                   <div className="ap-history-card-top">
                     <span className="ap-run-badge completed">
                       <CheckCircle2 size={10} /> completed
                     </span>
-                    <span className="ap-history-time">
-                      <Clock size={10} /> {new Date(item.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <div className="ap-history-top-right">
+                      <span className="ap-history-time">
+                        <Clock size={10} /> {new Date(item.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <div className="ap-history-menu-wrap">
+                        <button
+                          className="ap-history-menu-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMenuOpenId(menuOpenId === item.createdAt ? null : item.createdAt);
+                          }}
+                          aria-label="Options"
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+                        {menuOpenId === item.createdAt && (
+                          <div className="ap-history-menu" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="ap-history-menu-item"
+                              onClick={() => { setMenuOpenId(null); handleReopen(item); }}
+                            >
+                              <RotateCcw size={13} /> Reopen
+                            </button>
+                            <button
+                              className="ap-history-menu-item danger"
+                              onClick={() => { setMenuOpenId(null); handleDeleteHistory(item); }}
+                            >
+                              <Trash2 size={13} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <p className="ap-history-prompt">"{item.prompt}"</p>
                 </div>
