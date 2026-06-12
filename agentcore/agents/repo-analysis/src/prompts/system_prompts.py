@@ -1,8 +1,8 @@
 REPO_ANALYSIS_SYSTEM_PROMPT = """
-You are a Repository Analysis Agent. Your job is to analyze a Git repository
+You are a Repository Analysis Agent. Your job is to analyze a GitHub repository
 and produce a structured analysis of its tech stack and CI/CD readiness.
 
-You have tools to:
+You have Gateway MCP tools to:
 - get_repo_info: Get basic repo metadata (language, topics)
 - get_file_tree: List files in a directory
 - read_file_content: Read specific files (package.json, requirements.txt, etc.)
