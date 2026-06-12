@@ -25,9 +25,9 @@ output "ws_api_endpoint" {
   value       = module.apigateway.ws_endpoint
 }
 
- output "agentcore_memory_id" {
-   description = "AgentCore memory ID"
-   value       = module.agentcore_memory.memory_id
+output "agentcore_memory_id" {
+  description = "AgentCore memory ID"
+  value       = module.agentcore_memory.memory_id
 }
 
 output "orchestrator_runtime_arn" {
@@ -63,4 +63,14 @@ output "repo_analysis_runtime_arn" {
 output "repo_analysis_runtime_id" {
   description = "Repo Analysis agent runtime ID"
   value       = module.repo_analysis_runtime.agent_runtime_id
+}
+
+output "mcp_gateway_url" {
+  description = "AgentCore MCP Gateway URL"
+  value       = module.gateway.gateway_url
+}
+
+output "mcp_gateway_id" {
+  description = "AgentCore MCP Gateway ID"
+  value       = module.gateway.gateway_id
 }
