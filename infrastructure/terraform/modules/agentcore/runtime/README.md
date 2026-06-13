@@ -20,6 +20,10 @@ Creates a Bedrock AgentCore Runtime for hosting AI agents in the Flow platform.
 | `standard` | Base permissions (Bedrock, CloudWatch, X-Ray, SSM) |
 | `orchestrator` | Extended permissions for AgentCore registry, memory, events, sessions, agent invocation |
 
+## Runtime observability
+
+When `enable_observability = true` (default), the runtime sets ADOT-related environment variables. The agent container must include `aws-opentelemetry-distro` and launch via `opentelemetry-instrument` (all agent Dockerfiles in `agentcore/agents/`).
+
 ## Protocols
 
 | Protocol | Use Case |

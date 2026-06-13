@@ -170,6 +170,12 @@ variable "enable_observability" {
   default     = true
 }
 
+variable "otel_disabled_instrumentations" {
+  description = "Comma-separated OpenTelemetry instrumentations to disable when observability is enabled"
+  type        = string
+  default     = "urllib3,urllib"
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number
