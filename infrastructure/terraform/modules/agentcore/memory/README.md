@@ -9,6 +9,8 @@ Creates an AgentCore Memory resource with extraction strategies for the Flow pla
 - `aws_iam_role` — execution role with Bedrock model inference permissions
 - `aws_ssm_parameter` — stores memory ID for runtime discovery
 
+Memory observability (APPLICATION_LOGS + TRACES) is wired via the shared `observability` module in `environments/dev/main.tf`.
+
 ## Memory Strategies
 
 | Strategy | Type | Purpose |
