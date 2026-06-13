@@ -23,9 +23,10 @@ terraform/
     ├── apigateway/                # HTTP API + WebSocket API
     ├── lambda/                    # Lambda functions and shared layers
     ├── gateway-lambda-tool/       # Reusable Gateway tool Lambda packager
+    ├── observability/             # AgentCore log + trace delivery (vended logs, X-Ray)
     └── agentcore/
         ├── runtime/               # AgentCore Runtime (ECR, CodeBuild, IAM)
-        ├── memory/                # AgentCore Memory + log delivery
+        ├── memory/                # AgentCore Memory
         └── gateway/               # AgentCore MCP Gateway + tool targets
 ```
 
@@ -41,8 +42,9 @@ Agent source code and Gateway tool Lambdas live under [`../../agentcore/`](../..
 | `apigateway` | HTTP API (pipeline + conversation CRUD) + WebSocket API |
 | `lambda` | WebSocket handlers, pipeline CRUD, conversation handlers, shared layer |
 | `gateway-lambda-tool` | Package and deploy one MCP tool Lambda (one module instance per domain) |
-| `agentcore/runtime` | Bedrock AgentCore Runtime with ECR, CodeBuild, hash-based deploy |
-| `agentcore/memory` | AgentCore Memory, semantic strategy, APPLICATION_LOGS delivery |
+| `observability` | APPLICATION_LOGS + TRACES delivery for AgentCore resources |
+| `agentcore/runtime` | Bedrock AgentCore Runtime with ECR, CodeBuild, IAM, ADOT env |
+| `agentcore/memory` | AgentCore Memory with semantic strategy |
 | `agentcore/gateway` | MCP Gateway (CUSTOM_JWT), Lambda targets, SSM parameters |
 
 ## AgentCore runtimes
@@ -150,6 +152,7 @@ After `apply`, useful outputs include:
 | `repo_analysis_runtime_arn` | Repo-analysis runtime ARN |
 | `repo_analysis_runtime_id` | Repo-analysis runtime ID |
 | `agentcore_memory_id` | AgentCore Memory ID |
+| `memory_application_log_group_name` | CloudWatch log group for memory APPLICATION_LOGS |
 | `mcp_gateway_url` | AgentCore MCP Gateway URL |
 | `mcp_gateway_id` | AgentCore MCP Gateway ID |
 | `artifacts_bucket_name` | S3 bucket for agent source zips and artifacts |
