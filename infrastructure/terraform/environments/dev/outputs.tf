@@ -30,6 +30,11 @@ output "agentcore_memory_id" {
   value       = module.agentcore_memory.memory_id
 }
 
+output "memory_application_log_group_name" {
+  description = "CloudWatch log group for AgentCore memory APPLICATION_LOGS"
+  value       = module.observability_memory.log_group_name
+}
+
 output "orchestrator_runtime_arn" {
   description = "Orchestrator agent runtime ARN"
   value       = module.orchestrator_runtime.agent_runtime_arn

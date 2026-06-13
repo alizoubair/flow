@@ -427,3 +427,64 @@ module "export_runtime" {
 
   depends_on = [module.s3]
 }
+
+# AgentCore Observability — CloudWatch vended logs + X-Ray traces
+
+resource "aws_cloudwatch_log_resource_policy" "xray_transaction_search" {
+  policy_name = "${local.app_name}-${local.environment}-xray-transaction-search"
+
+  policy_document = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "TransactionSearchXRayAccess"
+      Effect    = "Allow"
+      Principal = { Service = "xray.amazonaws.com" }
+      Action    = "logs:PutLogEvents"
+      Resource = [
+        "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:aws/spans:*",
+      ]
+    }]
+  })
+}
+
+resource "aws_xray_trace_segment_destination" "transaction_search" {
+  destination = "CloudWatchLogs"
+
+  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+}
+
+resource "aws_xray_indexing_rule" "default" {
+  name = "Default"
+
+  rule {
+    probabilistic {
+      desired_sampling_percentage = 100
+    }
+  }
+
+  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+}
+
+module "observability_memory" {
+  source = "../../modules/observability"
+
+  project_name  = local.app_name
+  environment   = local.environment
+  aws_region    = var.aws_region
+  resource_name = "memory"
+  resource_arn  = module.agentcore_memory.memory_arn
+
+  log_group_name = "/aws/vendedlogs/bedrock-agentcore/memory/APPLICATION_LOGS/${module.agentcore_memory.memory_id}"
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+
+  depends_on = [
+    module.agentcore_memory,
+    aws_xray_trace_segment_destination.transaction_search,
+    aws_xray_indexing_rule.default,
+  ]
+}
