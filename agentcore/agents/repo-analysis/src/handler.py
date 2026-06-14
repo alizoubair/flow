@@ -4,10 +4,13 @@ Repo Analysis Agent — AgentCore Runtime entrypoint.
 Receives task requests with a repo URL and returns
 a structured analysis of the repository's tech stack.
 
-Expected payload:
+Expected payload (from orchestrator InvokeAgentRuntime):
 {
-    "repo_url": "https://github.com/owner/repo",
-    "provider": "github"
+    "task": {
+        "repo_url": "https://github.com/owner/repo",
+        "provider": "github"
+    },
+    "metadata": { "userId": "...", "sessionId": "..." }
 }
 """
 import os
@@ -15,7 +18,7 @@ import json
 import logging
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
-from .agent import build_agent
+from .agent import analyze_repository
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
@@ -29,14 +32,15 @@ def handler(payload: dict, context) -> str:
     AgentCore Runtime entrypoint for repo analysis.
 
     Args:
-        payload: Contains repo_url and provider
+        payload: Contains task with repo_url and provider
         context: RequestContext from AgentCore Runtime
 
     Returns:
         JSON string with repository analysis results
     """
-    repo_url = payload.get('repo_url', '')
-    provider = payload.get('provider', 'github')
+    task = payload.get('task') or payload
+    repo_url = task.get('repo_url', '')
+    provider = task.get('provider', 'github')
 
     if not repo_url:
         return json.dumps({'error': 'repo_url is required'})
@@ -44,12 +48,14 @@ def handler(payload: dict, context) -> str:
     if provider != 'github':
         return json.dumps({'error': f'Provider {provider} not yet supported. Only github is available.'})
 
-    logger.info(f'Analyzing repository: {repo_url}')
+    logger.info('Analyzing repository via Gateway MCP: %s', repo_url)
 
-    agent = build_agent()
-    result = agent(f'Analyze this repository: {repo_url}')
-
-    return str(result)
+    try:
+        result = analyze_repository(repo_url)
+        return result
+    except Exception as e:
+        logger.error('Repo analysis failed: %s', e, exc_info=True)
+        return json.dumps({'error': str(e)})
 
 
 if __name__ == '__main__':
