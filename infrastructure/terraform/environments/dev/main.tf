@@ -58,11 +58,11 @@ module "apigateway" {
 # Lambda Functions
 
 module "lambda" {
-  source      = "../../modules/lambda"
-  app_name    = local.app_name
+  source       = "../../modules/lambda"
+  app_name     = local.app_name
   project_name = local.app_name
-  environment = local.environment
-  aws_region  = var.aws_region
+  environment  = local.environment
+  aws_region   = var.aws_region
 
   ws_connections_table_name = module.dynamodb.ws_connections_table_name
   ws_connections_table_arn  = module.dynamodb.ws_connections_table_arn
@@ -79,6 +79,82 @@ module "lambda" {
   orchestrator_runtime_arn = module.orchestrator_runtime.agent_runtime_arn
 
   depends_on = [module.orchestrator_runtime]
+}
+
+# Git provider tokens
+
+resource "aws_secretsmanager_secret" "git_provider_tokens" {
+  name        = "${local.app_name}-${local.environment}-git-provider-tokens"
+  description = "GitHub token used by the source-control MCP tool Lambda."
+}
+
+resource "aws_secretsmanager_secret_version" "git_provider_tokens" {
+  secret_id = aws_secretsmanager_secret.git_provider_tokens.id
+  secret_string = jsonencode({
+    github_token = var.github_access_token
+  })
+}
+
+# Source-control Gateway tool Lambda
+
+module "source_control_tool" {
+  source = "../../modules/gateway-lambda-tool"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+
+  tool_name   = "source-control"
+  source_root = abspath("${path.root}/../../../../agentcore/gateway-tools/lambda-functions")
+
+  secret_arns = [aws_secretsmanager_secret.git_provider_tokens.arn]
+  env_vars = {
+    GIT_PROVIDER_SECRET_ARN = aws_secretsmanager_secret.git_provider_tokens.arn
+  }
+}
+
+# AgentCore MCP Gateway
+
+module "gateway" {
+  source = "../../modules/agentcore/gateway"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+
+  cognito_issuer_url = "https://cognito-idp.${var.aws_region}.amazonaws.com/${module.cognito.user_pool_id}"
+  cognito_allowed_clients = [
+    module.cognito.client_id,
+    module.cognito.gateway_m2m_client_id,
+  ]
+
+  lambda_tool_arns = {
+    "source-control" = module.source_control_tool.function_arn
+  }
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+# Gateway M2M credentials (agent runtimes → MCP Gateway)
+
+resource "aws_secretsmanager_secret" "gateway_m2m_auth" {
+  name        = "${local.app_name}-${local.environment}-gateway-m2m-auth"
+  description = "Cognito client credentials for agent runtimes calling the MCP Gateway."
+}
+
+resource "aws_secretsmanager_secret_version" "gateway_m2m_auth" {
+  secret_id = aws_secretsmanager_secret.gateway_m2m_auth.id
+  secret_string = jsonencode({
+    client_id     = module.cognito.gateway_m2m_client_id
+    client_secret = module.cognito.gateway_m2m_client_secret
+    scope         = module.cognito.gateway_m2m_scope
+  })
 }
 
 # AgentCore Memory
@@ -132,10 +208,10 @@ module "orchestrator_runtime" {
   cognito_allowed_clients = [module.cognito.client_id]
 
   # Orchestrator permissions
-  artifact_bucket_arn    = module.s3.artifacts_bucket_arn
-  dynamodb_table_arns    = [module.dynamodb.pipelines_table_arn]
-  secrets_manager_arns   = []
-  ws_api_execution_arn   = module.apigateway.ws_api_execution_arn
+  artifact_bucket_arn  = module.s3.artifacts_bucket_arn
+  dynamodb_table_arns  = [module.dynamodb.pipelines_table_arn]
+  secrets_manager_arns = []
+  ws_api_execution_arn = module.apigateway.ws_api_execution_arn
 
   # Environment variables
   extra_env_vars = {
@@ -182,13 +258,14 @@ module "repo_analysis_runtime" {
   image_tag     = "latest"
 
   # CodeBuild configuration
-  enable_codebuild       = true
-  agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/repo-analysis")
-  source_s3_bucket       = module.s3.artifacts_bucket_name
-  source_s3_key          = "agent-source/repo-analysis.zip"
-  buildspec_path         = "buildspec.yml"
-  codebuild_compute_type = "BUILD_GENERAL1_SMALL"
-  codebuild_image        = "aws/codebuild/standard:7.0"
+  enable_codebuild        = true
+  agent_source_path       = abspath("${path.root}/../../../../agentcore/agents/repo-analysis")
+  additional_source_paths = [abspath("${path.root}/../../../../agentcore/shared")]
+  source_s3_bucket        = module.s3.artifacts_bucket_name
+  source_s3_key           = "agent-source/repo-analysis.zip"
+  buildspec_path          = "buildspec.yml"
+  codebuild_compute_type  = "BUILD_GENERAL1_SMALL"
+  codebuild_image         = "aws/codebuild/standard:7.0"
 
   # No auth — called via InvokeAgentRuntime from orchestrator (SigV4)
   cognito_issuer_url      = ""
@@ -197,15 +274,17 @@ module "repo_analysis_runtime" {
   # Permissions
   artifact_bucket_arn  = ""
   dynamodb_table_arns  = []
-  secrets_manager_arns = []
+  secrets_manager_arns = [aws_secretsmanager_secret.gateway_m2m_auth.arn]
 
   # Environment variables
   extra_env_vars = {
-    BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
-    GITHUB_TOKEN     = ""
+    BEDROCK_MODEL_ID        = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    GATEWAY_MCP_URL         = module.gateway.gateway_url
+    GATEWAY_AUTH_SECRET_ARN = aws_secretsmanager_secret.gateway_m2m_auth.arn
+    COGNITO_TOKEN_URL       = "${module.cognito.hosted_ui_url}/oauth2/token"
   }
 
-  depends_on = [module.s3]
+  depends_on = [module.s3, module.gateway]
 }
 
 # Pipeline Generation Runtime
@@ -347,4 +426,65 @@ module "export_runtime" {
   }
 
   depends_on = [module.s3]
+}
+
+# AgentCore Observability — CloudWatch vended logs + X-Ray traces
+
+resource "aws_cloudwatch_log_resource_policy" "xray_transaction_search" {
+  policy_name = "${local.app_name}-${local.environment}-xray-transaction-search"
+
+  policy_document = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "TransactionSearchXRayAccess"
+      Effect    = "Allow"
+      Principal = { Service = "xray.amazonaws.com" }
+      Action    = "logs:PutLogEvents"
+      Resource = [
+        "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:aws/spans:*",
+      ]
+    }]
+  })
+}
+
+resource "aws_xray_trace_segment_destination" "transaction_search" {
+  destination = "CloudWatchLogs"
+
+  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+}
+
+resource "aws_xray_indexing_rule" "default" {
+  name = "Default"
+
+  rule {
+    probabilistic {
+      desired_sampling_percentage = 100
+    }
+  }
+
+  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+}
+
+module "observability_memory" {
+  source = "../../modules/observability"
+
+  project_name  = local.app_name
+  environment   = local.environment
+  aws_region    = var.aws_region
+  resource_name = "memory"
+  resource_arn  = module.agentcore_memory.memory_arn
+
+  log_group_name = "/aws/vendedlogs/bedrock-agentcore/memory/APPLICATION_LOGS/${module.agentcore_memory.memory_id}"
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+
+  depends_on = [
+    module.agentcore_memory,
+    aws_xray_trace_segment_destination.transaction_search,
+    aws_xray_indexing_rule.default,
+  ]
 }

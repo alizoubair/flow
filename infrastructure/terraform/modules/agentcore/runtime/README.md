@@ -10,7 +10,8 @@ Creates a Bedrock AgentCore Runtime for hosting AI agents in the Flow platform.
 - `aws_iam_role` — execution role for the runtime + CodeBuild service role
 - `aws_cloudwatch_log_group` — runtime and CodeBuild logs
 - `aws_ssm_parameter` — stores runtime ARN and ID for discovery
-- `null_resource` — uploads source to S3 and triggers CodeBuild
+- `archive_file` + `aws_s3_object` — packages and uploads source to S3 for CodeBuild
+- `null_resource` — triggers CodeBuild and waits for the image build
 
 ## Runtime Modes
 
@@ -18,6 +19,10 @@ Creates a Bedrock AgentCore Runtime for hosting AI agents in the Flow platform.
 |---|---|
 | `standard` | Base permissions (Bedrock, CloudWatch, X-Ray, SSM) |
 | `orchestrator` | Extended permissions for AgentCore registry, memory, events, sessions, agent invocation |
+
+## Runtime observability
+
+When `enable_observability = true` (default), the runtime sets ADOT-related environment variables. The agent container must include `aws-opentelemetry-distro` and launch via `opentelemetry-instrument` (all agent Dockerfiles in `agentcore/agents/`).
 
 ## Protocols
 

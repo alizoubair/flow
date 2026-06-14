@@ -17,3 +17,16 @@ output "domain" {
 output "hosted_ui_url" {
   value = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.aws_region}.amazoncognito.com"
 }
+
+output "gateway_m2m_client_id" {
+  value = aws_cognito_user_pool_client.gateway_m2m.id
+}
+
+output "gateway_m2m_client_secret" {
+  value     = aws_cognito_user_pool_client.gateway_m2m.client_secret
+  sensitive = true
+}
+
+output "gateway_m2m_scope" {
+  value = "${aws_cognito_resource_server.gateway.identifier}/invoke"
+}

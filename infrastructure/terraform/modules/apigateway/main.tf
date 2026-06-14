@@ -11,10 +11,10 @@ resource "aws_apigatewayv2_api" "websocket" {
 
 locals {
   ws_routes = {
-    "$connect"      = var.ws_invoke_arns["ws-connect"]
-    "$disconnect"   = var.ws_invoke_arns["ws-disconnect"]
-    "$default"      = var.ws_invoke_arns["ws-default"]
-    "orchestrator"  = var.ws_invoke_arns["ws-orchestrator"]
+    "$connect"     = var.ws_invoke_arns["ws-connect"]
+    "$disconnect"  = var.ws_invoke_arns["ws-disconnect"]
+    "$default"     = var.ws_invoke_arns["ws-default"]
+    "orchestrator" = var.ws_invoke_arns["ws-orchestrator"]
   }
 }
 

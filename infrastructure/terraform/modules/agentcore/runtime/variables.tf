@@ -170,6 +170,12 @@ variable "enable_observability" {
   default     = true
 }
 
+variable "otel_disabled_instrumentations" {
+  description = "Comma-separated OpenTelemetry instrumentations to disable when observability is enabled"
+  type        = string
+  default     = "urllib3,urllib"
+}
+
 variable "log_retention_days" {
   description = "CloudWatch log retention in days"
   type        = number
@@ -180,6 +186,12 @@ variable "agent_source_path" {
   description = "Path to the agent source code directory (relative to terraform root)"
   type        = string
   default     = ""
+}
+
+variable "additional_source_paths" {
+  description = "Extra directories to bundle into the agent source zip (e.g. shared libraries)."
+  type        = list(string)
+  default     = []
 }
 
 variable "ws_api_execution_arn" {

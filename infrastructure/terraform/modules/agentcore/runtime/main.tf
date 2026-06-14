@@ -2,12 +2,39 @@ locals {
   resource_prefix   = "${var.project_name}-${var.environment}-${var.component_name}"
   runtime_name_safe = replace("${var.project_name}_${var.environment}_${var.component_name}", "-", "_")
 
-  # Calculate source hash from agent directory
+  source_path_exclude = "(^venv/|^\\.venv/|__pycache__|\\.git|\\.pytest_cache|\\.pyc$|\\.pyo$|\\.egg-info)"
+
+  # Calculate source hash from agent directory and any bundled shared paths
   source_files = var.agent_source_path != "" ? fileset(var.agent_source_path, "**") : []
-  source_hash = var.agent_source_path != "" && length(local.source_files) > 0 ? sha256(join("", [
-    for f in local.source_files : filemd5("${var.agent_source_path}/${f}")
-    if !can(regex("(__pycache__|.git|.pytest_cache|.pyc|.pyo|.egg-info)", f))
-  ])) : "no-source"
+  extra_source_files = flatten([
+    for path in var.additional_source_paths :
+    [for f in fileset(path, "**") : "${path}/${f}"]
+    if path != ""
+  ])
+  source_hash = (var.agent_source_path != "" && length(local.source_files) > 0) || length(local.extra_source_files) > 0 ? sha256(join("", concat(
+    [
+      for f in local.source_files : filemd5("${var.agent_source_path}/${f}")
+      if !can(regex(local.source_path_exclude, f))
+    ],
+    [
+      for f in local.extra_source_files : filemd5(f)
+      if !can(regex(local.source_path_exclude, f))
+    ],
+  ))) : "no-source"
+
+  agent_archive_files = {
+    for f in local.source_files :
+    f => "${var.agent_source_path}/${f}"
+    if !can(regex(local.source_path_exclude, f))
+  }
+
+  additional_archive_files = merge([
+    for base_path in var.additional_source_paths : {
+      for f in fileset(base_path, "**") :
+      "${basename(base_path)}/${f}" => "${base_path}/${f}"
+      if base_path != "" && !can(regex(local.source_path_exclude, f))
+    }
+  ]...)
 
   # Hash-tagged images force Terraform to update the runtime when agent source changes.
   image_tag = var.container_uri != "" ? var.image_tag : local.source_hash
@@ -114,26 +141,37 @@ resource "aws_cloudwatch_log_group" "codebuild_logs" {
   tags = var.tags
 }
 
-# Upload Source Code to S3
-resource "null_resource" "upload_source" {
+# Package agent source (plus optional shared paths) and upload to S3 for CodeBuild.
+data "archive_file" "agent_source" {
   count = var.enable_codebuild && var.agent_source_path != "" ? 1 : 0
 
-  triggers = {
-    source_hash = local.source_hash
+  type        = "zip"
+  output_path = "${path.module}/.build/${var.component_name}-${local.source_hash}.zip"
+
+  dynamic "source" {
+    for_each = local.agent_archive_files
+    content {
+      content  = file(source.value)
+      filename = source.key
+    }
   }
 
-  provisioner "local-exec" {
-    working_dir = var.agent_source_path
-    environment = {
-      AWS_PROFILE    = var.aws_profile
-      COMPONENT_NAME = var.component_name
-      S3_BUCKET      = var.source_s3_bucket
-      S3_KEY         = var.source_s3_key
-      AWS_REGION_VAR = var.aws_region
+  dynamic "source" {
+    for_each = local.additional_archive_files
+    content {
+      content  = file(source.value)
+      filename = source.key
     }
-    interpreter = ["bash", "-c"]
-    command     = "rm -f /tmp/$COMPONENT_NAME-source.zip && zip -r /tmp/$COMPONENT_NAME-source.zip . -x 'venv/*' '.venv/*' '__pycache__/*' '*.pyc' '.git/*' '*.egg-info/*' '.pytest_cache/*' && aws s3 cp /tmp/$COMPONENT_NAME-source.zip s3://$S3_BUCKET/$S3_KEY --region $AWS_REGION_VAR"
   }
+}
+
+resource "aws_s3_object" "agent_source" {
+  count = var.enable_codebuild && var.agent_source_path != "" ? 1 : 0
+
+  bucket = var.source_s3_bucket
+  key    = var.source_s3_key
+  source = data.archive_file.agent_source[0].output_path
+  etag   = filemd5(data.archive_file.agent_source[0].output_path)
 
   depends_on = [
     aws_codebuild_project.container_build
@@ -165,7 +203,7 @@ resource "null_resource" "build_and_wait" {
     aws_codebuild_project.container_build,
     aws_ecr_repository.container_repo,
     aws_iam_role_policy.codebuild_policy,
-    null_resource.upload_source
+    aws_s3_object.agent_source
   ]
 }
 
@@ -204,13 +242,17 @@ resource "aws_bedrockagentcore_agent_runtime" "agent_runtime" {
       ENVIRONMENT  = var.environment
       # Forces a runtime update when agent source changes (matches AWS sample).
       SOURCE_HASH = local.source_hash
-
-      # Observability (ADOT). Turns on AgentCore span/log export to CloudWatch.
-      AGENT_OBSERVABILITY_ENABLED = tostring(var.enable_observability)
-      OTEL_PYTHON_DISTRO          = "aws_distro"
-      OTEL_PYTHON_CONFIGURATOR    = "aws_configurator"
-      OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
-      OTEL_RESOURCE_ATTRIBUTES    = "service.name=${local.runtime_name_safe}"
+    },
+    var.enable_observability ? {
+      AGENT_OBSERVABILITY_ENABLED             = "true"
+      OTEL_PYTHON_DISTRO                      = "aws_distro"
+      OTEL_PYTHON_CONFIGURATOR                = "aws_configurator"
+      OTEL_EXPORTER_OTLP_PROTOCOL             = "http/protobuf"
+      OTEL_LOGS_EXPORTER                      = "otlp"
+      OTEL_PYTHON_DISABLED_INSTRUMENTATIONS    = var.otel_disabled_instrumentations
+      OTEL_RESOURCE_ATTRIBUTES                = "service.name=${local.runtime_name_safe}"
+    } : {
+      AGENT_OBSERVABILITY_ENABLED = "false"
     },
     var.extra_env_vars
   )

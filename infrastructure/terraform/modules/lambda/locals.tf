@@ -12,14 +12,14 @@ locals {
       # No layer: handlers only use boto3 + botocore.exceptions, both provided
       # by the python3.12 runtime. A bundled layer previously shipped a broken
       # urllib3 that shadowed the runtime's and caused import errors.
-      layer_arn   = null
+      layer_arn = null
       env_vars = {
-        CONNECTIONS_TABLE          = var.ws_connections_table_name
-        CONVERSATIONS_TABLE        = var.conversations_table_name
-        WS_ENDPOINT                = "https://${var.ws_api_id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
-        ORCHESTRATOR_RUNTIME_ID    = var.orchestrator_runtime_id
-        ORCHESTRATOR_RUNTIME_ARN   = var.orchestrator_runtime_arn
-        FLOW_AWS_REGION            = var.aws_region
+        CONNECTIONS_TABLE        = var.ws_connections_table_name
+        CONVERSATIONS_TABLE      = var.conversations_table_name
+        WS_ENDPOINT              = "https://${var.ws_api_id}.execute-api.${var.aws_region}.amazonaws.com/${var.environment}"
+        ORCHESTRATOR_RUNTIME_ID  = var.orchestrator_runtime_id
+        ORCHESTRATOR_RUNTIME_ARN = var.orchestrator_runtime_arn
+        FLOW_AWS_REGION          = var.aws_region
       }
       dynamodb_arns = [
         var.ws_connections_table_arn,
@@ -33,8 +33,8 @@ locals {
           Resource = "${var.ws_api_execution_arn}/*"
         },
         {
-          Effect   = "Allow"
-          Action   = [
+          Effect = "Allow"
+          Action = [
             "bedrock-agentcore:InvokeAgentRuntime",
             "bedrock-agentcore:GetAgentRuntime",
             "bedrock-agentcore:InvokeAgentRuntimeForUser",
