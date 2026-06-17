@@ -114,6 +114,29 @@ module "source_control_tool" {
   }
 }
 
+# AgentCore Policy — Cedar authorization for MCP Gateway tool calls
+
+module "gateway_policy_engine" {
+  source = "../../modules/agentcore/policy"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+  gateway_arn  = local.gateway_arn
+
+  create_cedar_policies = false
+
+  # Alternate name avoids ConflictException if flow_dev_gateway was reserved by a partial create.
+  policy_engine_name = "flow_dev_gw_policy"
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+}
+
 # AgentCore MCP Gateway
 
 module "gateway" {
@@ -134,11 +157,37 @@ module "gateway" {
     "source-control" = module.source_control_tool.function_arn
   }
 
+  policy_engine_arn  = module.gateway_policy_engine.policy_engine_arn
+  policy_engine_mode = "LOG_ONLY"
+
   tags = {
     Project     = local.app_name
     Environment = local.environment
     ManagedBy   = "terraform"
   }
+
+  depends_on = [module.gateway_policy_engine]
+}
+
+module "gateway_cedar_policies" {
+  source = "../../modules/agentcore/policy"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+  gateway_arn  = module.gateway.gateway_arn
+
+  create_policy_engine = false
+  policy_engine_id     = module.gateway_policy_engine.policy_engine_id
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+
+  depends_on = [module.gateway]
 }
 
 # Gateway M2M credentials (agent runtimes → MCP Gateway)

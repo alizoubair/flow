@@ -79,3 +79,13 @@ output "mcp_gateway_id" {
   description = "AgentCore MCP Gateway ID"
   value       = module.gateway.gateway_id
 }
+
+output "gateway_policy_engine_arn" {
+  description = "AgentCore policy engine ARN attached to the MCP Gateway"
+  value       = module.gateway_policy_engine.policy_engine_arn
+}
+
+output "gateway_policy_engine_id" {
+  description = "AgentCore policy engine ID"
+  value       = module.gateway_policy_engine.policy_engine_id
+}
