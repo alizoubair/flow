@@ -52,8 +52,43 @@ resource "aws_iam_role_policy" "gateway" {
         ]
         Resource = "*"
       }],
+      var.policy_engine_arn != "" ? [
+        {
+          Sid    = "PolicyEngineConfiguration"
+          Effect = "Allow"
+          Action = ["bedrock-agentcore:GetPolicyEngine"]
+          Resource = [
+            "arn:aws:bedrock-agentcore:${var.aws_region}:${var.account_id}:policy-engine/*",
+          ]
+        },
+        {
+          Sid    = "PolicyEngineAuthorization"
+          Effect = "Allow"
+          Action = [
+            "bedrock-agentcore:AuthorizeAction",
+            "bedrock-agentcore:PartiallyAuthorizeActions",
+          ]
+          Resource = [
+            "arn:aws:bedrock-agentcore:${var.aws_region}:${var.account_id}:policy-engine/*",
+            "arn:aws:bedrock-agentcore:${var.aws_region}:${var.account_id}:gateway/*",
+          ]
+        },
+      ] : [],
     )
   })
+}
+
+# IAM inline policies can take a few seconds to propagate before AgentCore accepts them.
+
+resource "time_sleep" "gateway_role_policy_propagation" {
+  depends_on = [aws_iam_role_policy.gateway]
+
+  create_duration = var.policy_engine_arn != "" ? "15s" : "0s"
+
+  triggers = {
+    role_policy       = aws_iam_role_policy.gateway.policy
+    policy_engine_arn = var.policy_engine_arn
+  }
 }
 
 # AgentCore MCP Gateway (CUSTOM_JWT inbound)
@@ -81,6 +116,14 @@ resource "aws_bedrockagentcore_gateway" "mcp" {
     }
   }
 
+  dynamic "policy_engine_configuration" {
+    for_each = var.policy_engine_arn != "" ? [1] : []
+    content {
+      arn  = var.policy_engine_arn
+      mode = var.policy_engine_mode
+    }
+  }
+
   exception_level = "DEBUG"
 
   tags = merge(var.tags, { Component = "gateway" })
@@ -88,6 +131,8 @@ resource "aws_bedrockagentcore_gateway" "mcp" {
   lifecycle {
     ignore_changes = [description]
   }
+
+  depends_on = [time_sleep.gateway_role_policy_propagation]
 }
 
 # IAM trust-policy propagation delay before Gateway targets can be created
