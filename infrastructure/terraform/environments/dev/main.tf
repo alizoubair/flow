@@ -479,27 +479,51 @@ module "export_runtime" {
 
 # AgentCore Observability — CloudWatch vended logs + X-Ray traces
 
-resource "aws_cloudwatch_log_resource_policy" "xray_transaction_search" {
-  policy_name = "${local.app_name}-${local.environment}-xray-transaction-search"
+data "aws_iam_policy_document" "xray_transaction_search" {
+  statement {
+    sid    = "TransactionSearchXRayAccess"
+    effect = "Allow"
 
-  policy_document = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Sid       = "TransactionSearchXRayAccess"
-      Effect    = "Allow"
-      Principal = { Service = "xray.amazonaws.com" }
-      Action    = "logs:PutLogEvents"
-      Resource = [
-        "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:aws/spans:*",
-      ]
-    }]
-  })
+    principals {
+      type        = "Service"
+      identifiers = ["xray.amazonaws.com"]
+    }
+
+    actions = ["logs:PutLogEvents"]
+
+    resources = [
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:aws/spans:*",
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/application-signals/data:*",
+    ]
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:xray:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_resource_policy" "xray_transaction_search" {
+  policy_name     = "${local.app_name}-${local.environment}-xray-transaction-search"
+  policy_document = data.aws_iam_policy_document.xray_transaction_search.json
+}
+
+resource "time_sleep" "xray_log_policy_propagation" {
+  depends_on      = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+  create_duration = "10s"
 }
 
 resource "aws_xray_trace_segment_destination" "transaction_search" {
   destination = "CloudWatchLogs"
 
-  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+  depends_on = [time_sleep.xray_log_policy_propagation]
 }
 
 resource "aws_xray_indexing_rule" "default" {
@@ -511,7 +535,7 @@ resource "aws_xray_indexing_rule" "default" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+  depends_on = [time_sleep.xray_log_policy_propagation]
 }
 
 module "observability_memory" {
@@ -533,6 +557,30 @@ module "observability_memory" {
 
   depends_on = [
     module.agentcore_memory,
+    aws_xray_trace_segment_destination.transaction_search,
+    aws_xray_indexing_rule.default,
+  ]
+}
+
+module "observability_orchestrator" {
+  source = "../../modules/observability"
+
+  project_name  = local.app_name
+  environment   = local.environment
+  aws_region    = var.aws_region
+  resource_name = "orchestrator"
+  resource_arn  = module.orchestrator_runtime.agent_runtime_arn
+
+  log_group_name = "/aws/vendedlogs/bedrock-agentcore/runtime/APPLICATION_LOGS/${module.orchestrator_runtime.agent_runtime_id}"
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+
+  depends_on = [
+    module.orchestrator_runtime,
     aws_xray_trace_segment_destination.transaction_search,
     aws_xray_indexing_rule.default,
   ]

@@ -35,6 +35,11 @@ output "memory_application_log_group_name" {
   value       = module.observability_memory.log_group_name
 }
 
+output "orchestrator_application_log_group_name" {
+  description = "CloudWatch log group for orchestrator runtime APPLICATION_LOGS"
+  value       = module.observability_orchestrator.log_group_name
+}
+
 output "orchestrator_runtime_arn" {
   description = "Orchestrator agent runtime ARN"
   value       = module.orchestrator_runtime.agent_runtime_arn
