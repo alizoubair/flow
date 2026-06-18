@@ -27,7 +27,9 @@ terraform/
     └── agentcore/
         ├── runtime/               # AgentCore Runtime (ECR, CodeBuild, IAM)
         ├── memory/                # AgentCore Memory
-        └── gateway/               # AgentCore MCP Gateway + tool targets
+        ├── gateway/               # AgentCore MCP Gateway + tool targets
+        ├── policy/                # Cedar policy engine + policies for Gateway
+        └── evaluation/            # IAM for AgentCore online evaluation
 ```
 
 Agent source code and Gateway tool Lambdas live under [`../../agentcore/`](../../agentcore/README.md).
@@ -46,6 +48,10 @@ Agent source code and Gateway tool Lambdas live under [`../../agentcore/`](../..
 | `agentcore/runtime` | Bedrock AgentCore Runtime with ECR, CodeBuild, IAM, ADOT env |
 | `agentcore/memory` | AgentCore Memory with semantic strategy |
 | `agentcore/gateway` | MCP Gateway (CUSTOM_JWT), Lambda targets, SSM parameters |
+| `agentcore/policy` | Cedar policy engine and Gateway authorization policies |
+| `agentcore/evaluation` | IAM service role and developer policy for online evaluation |
+
+See module READMEs: [`agentcore/gateway`](modules/agentcore/gateway/README.md), [`agentcore/policy`](modules/agentcore/policy/README.md), [`agentcore/evaluation`](modules/agentcore/evaluation/README.md).
 
 ## AgentCore runtimes
 
@@ -135,6 +141,27 @@ Or step by step: Cognito + secrets → `source_control_tool` + `gateway` → `re
 
 See [`agentcore/README.md`](../../agentcore/README.md) for agent-side MCP usage.
 
+## AgentCore Evaluations
+
+Online evaluation IAM is provisioned by `module.evaluation` in dev `main.tf`. The module creates:
+
+| Resource | Purpose |
+|---|---|
+| `AgentCoreEvaluationRole-{project}-{env}` | Service role for `bedrock-agentcore.amazonaws.com` (trace read, Bedrock invoke, results write) |
+| `{project}-{env}-online-eval-developer` | IAM policy to attach to developers/CI managing evaluation configs |
+
+The online evaluation **configuration** is created outside Terraform via `CreateOnlineEvaluationConfig`. See [`../../evaluations/README.md`](../../evaluations/README.md) and [`modules/agentcore/evaluation/README.md`](modules/agentcore/evaluation/README.md).
+
+```bash
+terraform output online_eval_service_role_arn
+terraform output online_eval_developer_policy_arn
+terraform output orchestrator_runtime_log_group_name
+terraform output orchestrator_runtime_name
+
+# After attaching online_eval_developer_policy_arn to your IAM user:
+../../scripts/manage-online-eval.sh create
+```
+
 ## Outputs
 
 After `apply`, useful outputs include:
@@ -153,6 +180,13 @@ After `apply`, useful outputs include:
 | `repo_analysis_runtime_id` | Repo-analysis runtime ID |
 | `agentcore_memory_id` | AgentCore Memory ID |
 | `memory_application_log_group_name` | CloudWatch log group for memory APPLICATION_LOGS |
+| `orchestrator_application_log_group_name` | CloudWatch log group for orchestrator APPLICATION_LOGS |
+| `orchestrator_runtime_name` | Orchestrator runtime name (OTEL `service.name` prefix) |
+| `orchestrator_runtime_log_group_name` | Orchestrator runtime event log group (online eval data source) |
+| `online_eval_service_role_arn` | IAM role for `CreateOnlineEvaluationConfig` |
+| `online_eval_developer_policy_arn` | IAM policy for managing online evaluations |
+| `gateway_policy_engine_arn` | Cedar policy engine ARN on the MCP Gateway |
+| `gateway_policy_engine_id` | Cedar policy engine ID |
 | `mcp_gateway_url` | AgentCore MCP Gateway URL |
 | `mcp_gateway_id` | AgentCore MCP Gateway ID |
 | `artifacts_bucket_name` | S3 bucket for agent source zips and artifacts |
