@@ -50,6 +50,26 @@ output "orchestrator_runtime_id" {
   value       = module.orchestrator_runtime.agent_runtime_id
 }
 
+output "orchestrator_runtime_name" {
+  description = "Orchestrator agent runtime name (OTEL service.name prefix)"
+  value       = module.orchestrator_runtime.agent_runtime_name
+}
+
+output "orchestrator_runtime_log_group_name" {
+  description = "CloudWatch log group for orchestrator runtime event logs (online eval data source)"
+  value       = module.orchestrator_runtime.log_group_name
+}
+
+output "online_eval_service_role_arn" {
+  description = "IAM service role ARN passed to CreateOnlineEvaluationConfig"
+  value       = module.evaluation.service_role_arn
+}
+
+output "online_eval_developer_policy_arn" {
+  description = "IAM policy ARN to attach to the developer/CI identity that manages online evaluations"
+  value       = module.evaluation.developer_policy_arn
+}
+
 output "artifacts_bucket_name" {
   description = "S3 bucket for pipeline artifacts"
   value       = module.s3.artifacts_bucket_name
