@@ -585,3 +585,20 @@ module "observability_orchestrator" {
     aws_xray_indexing_rule.default,
   ]
 }
+
+# AgentCore Online Evaluation — IAM for CreateOnlineEvaluationConfig
+
+module "evaluation" {
+  source = "../../modules/agentcore/evaluation"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+}
