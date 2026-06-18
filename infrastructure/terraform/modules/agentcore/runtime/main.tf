@@ -171,7 +171,7 @@ resource "aws_s3_object" "agent_source" {
   bucket = var.source_s3_bucket
   key    = var.source_s3_key
   source = data.archive_file.agent_source[0].output_path
-  etag   = filemd5(data.archive_file.agent_source[0].output_path)
+  etag   = data.archive_file.agent_source[0].output_md5
 
   depends_on = [
     aws_codebuild_project.container_build
