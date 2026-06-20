@@ -39,3 +39,9 @@ variable "amplify_default_domain" {
   type        = string
   default     = ""
 }
+
+variable "amplify_branch_name" {
+  description = "Amplify branch name used in callback/logout URLs"
+  type        = string
+  default     = "main"
+}

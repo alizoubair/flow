@@ -6,10 +6,10 @@ locals {
   ]
 
   amplify_callback = var.amplify_default_domain != "" ? [
-    "https://main.${var.amplify_default_domain}/auth/callback"
+    "https://${var.amplify_branch_name}.${var.amplify_default_domain}/auth/callback"
   ] : []
 
   amplify_logout = var.amplify_default_domain != "" ? [
-    "https://main.${var.amplify_default_domain}"
+    "https://${var.amplify_branch_name}.${var.amplify_default_domain}"
   ] : []
 }
