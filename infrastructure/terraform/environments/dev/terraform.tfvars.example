@@ -4,6 +4,10 @@ aws_profile = "alizoubair"
 github_repo         = "alizoubair/flow"
 github_access_token = "ghp_xxxxxxxxxxxxxxxxxxxx"
 
+# Amplify Hosting — uses github_access_token for Git connection when github_repo is set
+enable_amplify_hosting = true
+amplify_branch_name    = "main"
+
 # Google OAuth — optional, leave empty to skip
 # Get from: https://console.cloud.google.com/apis/credentials
 google_client_id     = ""

@@ -20,6 +20,53 @@ module "dynamodb" {
   environment = local.environment
 }
 
+# Amplify Hosting — app only; branch is wired after API Gateway (avoids Cognito cycle)
+
+module "amplify_app" {
+  source = "../../modules/amplify"
+
+  app_name    = local.app_name
+  environment = local.environment
+  enabled     = var.enable_amplify_hosting
+
+  repository   = var.enable_amplify_hosting && var.github_repo != "" ? "https://github.com/${var.github_repo}" : ""
+  access_token = var.github_access_token
+  branch_name  = var.amplify_branch_name
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+}
+
+resource "aws_amplify_branch" "frontend_main" {
+  count = var.enable_amplify_hosting ? 1 : 0
+
+  app_id      = module.amplify_app.app_id
+  branch_name = var.amplify_branch_name
+  stage       = "PRODUCTION"
+  framework   = "React"
+
+  enable_auto_build = var.github_repo != ""
+
+  environment_variables = {
+    REACT_APP_API_URL              = module.apigateway.http_api_endpoint
+    REACT_APP_WS_API_URL           = module.apigateway.ws_endpoint
+    REACT_APP_COGNITO_USER_POOL_ID = module.cognito.user_pool_id
+    REACT_APP_COGNITO_CLIENT_ID    = module.cognito.client_id
+    REACT_APP_COGNITO_DOMAIN       = module.cognito.hosted_ui_url
+    REACT_APP_COGNITO_REDIRECT_URI = "https://${var.amplify_branch_name}.${module.amplify_app.default_domain}/auth/callback"
+    REACT_APP_AWS_REGION           = var.aws_region
+  }
+
+  depends_on = [
+    module.amplify_app,
+    module.cognito,
+    module.apigateway,
+  ]
+}
+
 # Cognito
 
 module "cognito" {
@@ -32,6 +79,9 @@ module "cognito" {
   google_client_secret = var.google_client_secret
   github_client_id     = var.github_client_id
   github_client_secret = var.github_client_secret
+
+  amplify_default_domain = var.enable_amplify_hosting ? module.amplify_app.default_domain : ""
+  amplify_branch_name    = var.amplify_branch_name
 }
 
 # API Gateway
