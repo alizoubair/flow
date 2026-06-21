@@ -249,6 +249,8 @@ resource "aws_bedrockagentcore_agent_runtime" "agent_runtime" {
       OTEL_PYTHON_CONFIGURATOR                = "aws_configurator"
       OTEL_EXPORTER_OTLP_PROTOCOL             = "http/protobuf"
       OTEL_LOGS_EXPORTER                      = "otlp"
+      OTEL_TRACES_EXPORTER                    = "otlp"
+      OTEL_SEMCONV_STABILITY_OPT_IN           = "gen_ai_latest_experimental,gen_ai_use_latest_invocation_tokens"
       OTEL_PYTHON_DISABLED_INSTRUMENTATIONS    = var.otel_disabled_instrumentations
       OTEL_RESOURCE_ATTRIBUTES                = "service.name=${local.runtime_name_safe}"
     } : {
