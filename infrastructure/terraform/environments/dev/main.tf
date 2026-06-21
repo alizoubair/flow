@@ -296,6 +296,7 @@ module "orchestrator_runtime" {
   # CodeBuild configuration
   enable_codebuild       = true
   agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/orchestrator")
+  additional_source_paths = [local.agentcore_shared_path]
   source_s3_bucket       = module.s3.artifacts_bucket_name
   source_s3_key          = "agent-source/orchestrator.zip"
   buildspec_path         = "buildspec.yml"
@@ -359,7 +360,7 @@ module "repo_analysis_runtime" {
   # CodeBuild configuration
   enable_codebuild        = true
   agent_source_path       = abspath("${path.root}/../../../../agentcore/agents/repo-analysis")
-  additional_source_paths = [abspath("${path.root}/../../../../agentcore/shared")]
+  additional_source_paths = [local.agentcore_shared_path]
   source_s3_bucket        = module.s3.artifacts_bucket_name
   source_s3_key           = "agent-source/repo-analysis.zip"
   buildspec_path          = "buildspec.yml"
@@ -410,6 +411,7 @@ module "pipeline_gen_runtime" {
   # CodeBuild configuration
   enable_codebuild       = true
   agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/pipeline-gen")
+  additional_source_paths = [local.agentcore_shared_path]
   source_s3_bucket       = module.s3.artifacts_bucket_name
   source_s3_key          = "agent-source/pipeline-gen.zip"
   buildspec_path         = "buildspec.yml"
@@ -457,6 +459,7 @@ module "validation_runtime" {
   # CodeBuild configuration
   enable_codebuild       = true
   agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/validation")
+  additional_source_paths = [local.agentcore_shared_path]
   source_s3_bucket       = module.s3.artifacts_bucket_name
   source_s3_key          = "agent-source/validation.zip"
   buildspec_path         = "buildspec.yml"
@@ -504,6 +507,7 @@ module "export_runtime" {
   # CodeBuild configuration
   enable_codebuild       = true
   agent_source_path      = abspath("${path.root}/../../../../agentcore/agents/export")
+  additional_source_paths = [local.agentcore_shared_path]
   source_s3_bucket       = module.s3.artifacts_bucket_name
   source_s3_key          = "agent-source/export.zip"
   buildspec_path         = "buildspec.yml"
@@ -588,49 +592,19 @@ resource "aws_xray_indexing_rule" "default" {
   depends_on = [time_sleep.xray_log_policy_propagation]
 }
 
-module "observability_memory" {
-  source = "../../modules/observability"
+module "observability" {
+  for_each = local.observability_targets
+  source   = "../../modules/observability"
 
-  project_name  = local.app_name
-  environment   = local.environment
-  aws_region    = var.aws_region
-  resource_name = "memory"
-  resource_arn  = module.agentcore_memory.memory_arn
-
-  log_group_name = "/aws/vendedlogs/bedrock-agentcore/memory/APPLICATION_LOGS/${module.agentcore_memory.memory_id}"
-
-  tags = {
-    Project     = local.app_name
-    Environment = local.environment
-    ManagedBy   = "terraform"
-  }
+  project_name   = local.app_name
+  environment    = local.environment
+  aws_region     = var.aws_region
+  resource_name  = each.value.resource_name
+  resource_arn   = each.value.resource_arn
+  log_group_name = each.value.log_group_name
+  tags           = local.observability_tags
 
   depends_on = [
-    module.agentcore_memory,
-    aws_xray_trace_segment_destination.transaction_search,
-    aws_xray_indexing_rule.default,
-  ]
-}
-
-module "observability_orchestrator" {
-  source = "../../modules/observability"
-
-  project_name  = local.app_name
-  environment   = local.environment
-  aws_region    = var.aws_region
-  resource_name = "orchestrator"
-  resource_arn  = module.orchestrator_runtime.agent_runtime_arn
-
-  log_group_name = "/aws/vendedlogs/bedrock-agentcore/runtime/APPLICATION_LOGS/${module.orchestrator_runtime.agent_runtime_id}"
-
-  tags = {
-    Project     = local.app_name
-    Environment = local.environment
-    ManagedBy   = "terraform"
-  }
-
-  depends_on = [
-    module.orchestrator_runtime,
     aws_xray_trace_segment_destination.transaction_search,
     aws_xray_indexing_rule.default,
   ]
