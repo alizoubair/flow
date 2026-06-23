@@ -15,10 +15,13 @@ import os
 import logging
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
+from shared.telemetry import setup_strands_telemetry
 from .agent import build_orchestrator
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+
+setup_strands_telemetry()
 
 app = BedrockAgentCoreApp()
 
