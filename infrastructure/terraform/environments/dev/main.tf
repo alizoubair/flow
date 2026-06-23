@@ -114,6 +114,29 @@ module "source_control_tool" {
   }
 }
 
+# AgentCore Policy — Cedar authorization for MCP Gateway tool calls
+
+module "gateway_policy_engine" {
+  source = "../../modules/agentcore/policy"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+  gateway_arn  = local.gateway_arn
+
+  create_cedar_policies = false
+
+  # Alternate name avoids ConflictException if flow_dev_gateway was reserved by a partial create.
+  policy_engine_name = "flow_dev_gw_policy"
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+}
+
 # AgentCore MCP Gateway
 
 module "gateway" {
@@ -134,11 +157,37 @@ module "gateway" {
     "source-control" = module.source_control_tool.function_arn
   }
 
+  policy_engine_arn  = module.gateway_policy_engine.policy_engine_arn
+  policy_engine_mode = "LOG_ONLY"
+
   tags = {
     Project     = local.app_name
     Environment = local.environment
     ManagedBy   = "terraform"
   }
+
+  depends_on = [module.gateway_policy_engine]
+}
+
+module "gateway_cedar_policies" {
+  source = "../../modules/agentcore/policy"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+  gateway_arn  = module.gateway.gateway_arn
+
+  create_policy_engine = false
+  policy_engine_id     = module.gateway_policy_engine.policy_engine_id
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+
+  depends_on = [module.gateway]
 }
 
 # Gateway M2M credentials (agent runtimes → MCP Gateway)
@@ -430,27 +479,51 @@ module "export_runtime" {
 
 # AgentCore Observability — CloudWatch vended logs + X-Ray traces
 
-resource "aws_cloudwatch_log_resource_policy" "xray_transaction_search" {
-  policy_name = "${local.app_name}-${local.environment}-xray-transaction-search"
+data "aws_iam_policy_document" "xray_transaction_search" {
+  statement {
+    sid    = "TransactionSearchXRayAccess"
+    effect = "Allow"
 
-  policy_document = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Sid       = "TransactionSearchXRayAccess"
-      Effect    = "Allow"
-      Principal = { Service = "xray.amazonaws.com" }
-      Action    = "logs:PutLogEvents"
-      Resource = [
-        "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:aws/spans:*",
-      ]
-    }]
-  })
+    principals {
+      type        = "Service"
+      identifiers = ["xray.amazonaws.com"]
+    }
+
+    actions = ["logs:PutLogEvents"]
+
+    resources = [
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:aws/spans:*",
+      "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/application-signals/data:*",
+    ]
+
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:xray:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [data.aws_caller_identity.current.account_id]
+    }
+  }
+}
+
+resource "aws_cloudwatch_log_resource_policy" "xray_transaction_search" {
+  policy_name     = "${local.app_name}-${local.environment}-xray-transaction-search"
+  policy_document = data.aws_iam_policy_document.xray_transaction_search.json
+}
+
+resource "time_sleep" "xray_log_policy_propagation" {
+  depends_on      = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+  create_duration = "10s"
 }
 
 resource "aws_xray_trace_segment_destination" "transaction_search" {
   destination = "CloudWatchLogs"
 
-  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+  depends_on = [time_sleep.xray_log_policy_propagation]
 }
 
 resource "aws_xray_indexing_rule" "default" {
@@ -462,7 +535,7 @@ resource "aws_xray_indexing_rule" "default" {
     }
   }
 
-  depends_on = [aws_cloudwatch_log_resource_policy.xray_transaction_search]
+  depends_on = [time_sleep.xray_log_policy_propagation]
 }
 
 module "observability_memory" {
@@ -487,4 +560,45 @@ module "observability_memory" {
     aws_xray_trace_segment_destination.transaction_search,
     aws_xray_indexing_rule.default,
   ]
+}
+
+module "observability_orchestrator" {
+  source = "../../modules/observability"
+
+  project_name  = local.app_name
+  environment   = local.environment
+  aws_region    = var.aws_region
+  resource_name = "orchestrator"
+  resource_arn  = module.orchestrator_runtime.agent_runtime_arn
+
+  log_group_name = "/aws/vendedlogs/bedrock-agentcore/runtime/APPLICATION_LOGS/${module.orchestrator_runtime.agent_runtime_id}"
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
+
+  depends_on = [
+    module.orchestrator_runtime,
+    aws_xray_trace_segment_destination.transaction_search,
+    aws_xray_indexing_rule.default,
+  ]
+}
+
+# AgentCore Online Evaluation — IAM for CreateOnlineEvaluationConfig
+
+module "evaluation" {
+  source = "../../modules/agentcore/evaluation"
+
+  project_name = local.app_name
+  environment  = local.environment
+  aws_region   = var.aws_region
+  account_id   = data.aws_caller_identity.current.account_id
+
+  tags = {
+    Project     = local.app_name
+    Environment = local.environment
+    ManagedBy   = "terraform"
+  }
 }

@@ -30,6 +30,23 @@ variable "lambda_tool_arns" {
   default     = {}
 }
 
+variable "policy_engine_arn" {
+  description = "ARN of an AgentCore policy engine to attach for Gateway tool authorization"
+  type        = string
+  default     = ""
+}
+
+variable "policy_engine_mode" {
+  description = "Policy engine enforcement mode: LOG_ONLY (monitor) or ENFORCE"
+  type        = string
+  default     = "LOG_ONLY"
+
+  validation {
+    condition     = contains(["LOG_ONLY", "ENFORCE"], var.policy_engine_mode)
+    error_message = "policy_engine_mode must be LOG_ONLY or ENFORCE."
+  }
+}
+
 variable "tags" {
   type    = map(string)
   default = {}

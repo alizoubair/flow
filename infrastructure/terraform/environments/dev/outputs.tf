@@ -35,6 +35,11 @@ output "memory_application_log_group_name" {
   value       = module.observability_memory.log_group_name
 }
 
+output "orchestrator_application_log_group_name" {
+  description = "CloudWatch log group for orchestrator runtime APPLICATION_LOGS"
+  value       = module.observability_orchestrator.log_group_name
+}
+
 output "orchestrator_runtime_arn" {
   description = "Orchestrator agent runtime ARN"
   value       = module.orchestrator_runtime.agent_runtime_arn
@@ -43,6 +48,26 @@ output "orchestrator_runtime_arn" {
 output "orchestrator_runtime_id" {
   description = "Orchestrator agent runtime ID"
   value       = module.orchestrator_runtime.agent_runtime_id
+}
+
+output "orchestrator_runtime_name" {
+  description = "Orchestrator agent runtime name (OTEL service.name prefix)"
+  value       = module.orchestrator_runtime.agent_runtime_name
+}
+
+output "orchestrator_runtime_log_group_name" {
+  description = "CloudWatch log group for orchestrator runtime event logs (online eval data source)"
+  value       = module.orchestrator_runtime.log_group_name
+}
+
+output "online_eval_service_role_arn" {
+  description = "IAM service role ARN passed to CreateOnlineEvaluationConfig"
+  value       = module.evaluation.service_role_arn
+}
+
+output "online_eval_developer_policy_arn" {
+  description = "IAM policy ARN to attach to the developer/CI identity that manages online evaluations"
+  value       = module.evaluation.developer_policy_arn
 }
 
 output "artifacts_bucket_name" {
@@ -78,4 +103,14 @@ output "mcp_gateway_url" {
 output "mcp_gateway_id" {
   description = "AgentCore MCP Gateway ID"
   value       = module.gateway.gateway_id
+}
+
+output "gateway_policy_engine_arn" {
+  description = "AgentCore policy engine ARN attached to the MCP Gateway"
+  value       = module.gateway_policy_engine.policy_engine_arn
+}
+
+output "gateway_policy_engine_id" {
+  description = "AgentCore policy engine ID"
+  value       = module.gateway_policy_engine.policy_engine_id
 }
