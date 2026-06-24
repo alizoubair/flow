@@ -32,12 +32,12 @@ output "agentcore_memory_id" {
 
 output "memory_application_log_group_name" {
   description = "CloudWatch log group for AgentCore memory APPLICATION_LOGS"
-  value       = module.observability_memory.log_group_name
+  value       = module.observability["memory"].log_group_name
 }
 
 output "orchestrator_application_log_group_name" {
   description = "CloudWatch log group for orchestrator runtime APPLICATION_LOGS"
-  value       = module.observability_orchestrator.log_group_name
+  value       = module.observability["orchestrator"].log_group_name
 }
 
 output "orchestrator_runtime_arn" {
@@ -113,4 +113,29 @@ output "gateway_policy_engine_arn" {
 output "gateway_policy_engine_id" {
   description = "AgentCore policy engine ID"
   value       = module.gateway_policy_engine.policy_engine_id
+}
+
+output "amplify_app_id" {
+  description = "Amplify app ID"
+  value       = module.amplify_app.app_id
+}
+
+output "amplify_app_url" {
+  description = "HTTPS URL for the hosted frontend"
+  value       = var.enable_amplify_hosting ? "https://${var.amplify_branch_name}.${module.amplify_app.default_domain}" : null
+}
+
+output "amplify_default_domain" {
+  description = "Amplify default domain suffix (branch URL is https://{branch}.{domain})"
+  value       = module.amplify_app.default_domain
+}
+
+output "genai_observability_console_url" {
+  description = "CloudWatch GenAI Observability dashboard (Bedrock AgentCore agents view)"
+  value       = "https://${var.aws_region}.console.aws.amazon.com/cloudwatch/home?region=${var.aws_region}#gen-ai-observability/agent-core/agents"
+}
+
+output "observability_application_log_groups" {
+  description = "APPLICATION_LOGS vended log groups per AgentCore resource"
+  value       = { for k, m in module.observability : k => m.log_group_name }
 }

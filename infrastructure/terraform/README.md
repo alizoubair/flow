@@ -17,6 +17,7 @@ terraform/
 │       ├── locals.tf              # Shared locals
 │       └── terraform.tfvars.example
 └── modules/
+    ├── amplify/                   # Amplify app (SPA hosting for React frontend)
     ├── s3/                        # S3 state bucket + artifacts bucket
     ├── dynamodb/                  # Pipelines, conversations, WebSocket tables
     ├── cognito/                   # User Pool, OAuth, Gateway M2M client
@@ -38,6 +39,7 @@ Agent source code and Gateway tool Lambdas live under [`../../agentcore/`](../..
 
 | Module | Description |
 |---|---|
+| `amplify` | Amplify Hosting app with CRA build spec and SPA rewrite rules |
 | `s3` | Terraform state bucket, artifacts bucket, DynamoDB lock table |
 | `dynamodb` | Pipelines, WebSocket connections, and conversations tables |
 | `cognito` | User Pool, Hosted UI, Google/GitHub OAuth, **Gateway M2M client** |
@@ -51,7 +53,27 @@ Agent source code and Gateway tool Lambdas live under [`../../agentcore/`](../..
 | `agentcore/policy` | Cedar policy engine and Gateway authorization policies |
 | `agentcore/evaluation` | IAM service role and developer policy for online evaluation |
 
-See module READMEs: [`agentcore/gateway`](modules/agentcore/gateway/README.md), [`agentcore/policy`](modules/agentcore/policy/README.md), [`agentcore/evaluation`](modules/agentcore/evaluation/README.md).
+See module READMEs: [`amplify`](modules/amplify/README.md), [`agentcore/gateway`](modules/agentcore/gateway/README.md), [`agentcore/policy`](modules/agentcore/policy/README.md), [`agentcore/evaluation`](modules/agentcore/evaluation/README.md).
+
+## Amplify Hosting
+
+The React frontend in [`../../amplify/`](../../amplify/README.md) is deployed in dev `main.tf`:
+
+| Resource | Purpose |
+|---|---|
+| `module.amplify_app` | Amplify app, SPA rewrites, embedded `amplify.yml` build spec |
+| `aws_amplify_branch.frontend_main` | Production branch with `REACT_APP_*` env vars from API Gateway + Cognito |
+
+Cognito callback URLs use `https://{branch}.{amplify_default_domain}/auth/callback`. The Amplify **app** is created first; the **branch** is wired after Cognito so Terraform can resolve that URL without a dependency cycle.
+
+Set `github_repo` and `github_access_token` in `terraform.tfvars` to connect GitHub and enable auto-build on push. Set `enable_amplify_hosting = false` to skip frontend hosting.
+
+```bash
+terraform output amplify_app_url
+terraform output http_api_endpoint
+```
+
+After the first deploy, open the Amplify console (or push to `main`) to trigger a build. Local development still uses `amplify/.env.local` with the same output values.
 
 ## AgentCore runtimes
 
@@ -141,6 +163,26 @@ Or step by step: Cognito + secrets → `source_control_tool` + `gateway` → `re
 
 See [`agentcore/README.md`](../../agentcore/README.md) for agent-side MCP usage.
 
+## AgentCore Observability
+
+CloudWatch **GenAI Observability → Bedrock AgentCore** is the primary dashboard for sessions, traces, FM token usage, and runtime metrics. See the [Observability](../../README.md#observability) section in the root README for console navigation and screenshots.
+
+Dev wiring:
+
+| Resource | Purpose |
+|---|---|
+| `module.observability` (`for_each`) | APPLICATION_LOGS + TRACES delivery for memory and all five runtimes |
+| `aws_cloudwatch_log_resource_policy.xray_transaction_search` | Lets X-Ray ingest spans into CloudWatch |
+| `aws_xray_trace_segment_destination` + `aws_xray_indexing_rule` | Transaction Search at 100% sampling (dev) |
+| `enable_observability = true` on each runtime | ADOT env vars on AgentCore Runtime |
+
+```bash
+terraform output genai_observability_console_url
+terraform output observability_application_log_groups
+```
+
+Agents appear as `flow_dev_orchestrator`, `flow_dev_pipeline_gen`, etc. FM token counts require `strands-agents[otel]` in agent images and successful Bedrock calls after deploy.
+
 ## AgentCore Evaluations
 
 Online evaluation IAM is provisioned by `module.evaluation` in dev `main.tf`. The module creates:
@@ -192,8 +234,11 @@ After `apply`, useful outputs include:
 | `artifacts_bucket_name` | S3 bucket for agent source zips and artifacts |
 | `ecr_repository_url` | ECR repository for orchestrator container |
 | `codebuild_project_name` | CodeBuild project for orchestrator image builds |
+| `amplify_app_id` | Amplify app ID |
+| `amplify_app_url` | Hosted frontend URL (`https://main.{domain}.amplifyapp.com`) |
+| `amplify_default_domain` | Amplify domain suffix for branch URLs |
 
-Copy Cognito and API values into `amplify/.env.local`.
+For local dev, copy Cognito and API values into `amplify/.env.local`. For Amplify Hosting, the branch env vars are set automatically by Terraform.
 
 ## Required variables
 
@@ -202,7 +247,9 @@ Copy Cognito and API values into `amplify/.env.local`.
 | `aws_region` | AWS region (default: `us-west-2`) |
 | `aws_profile` | AWS CLI profile |
 | `github_access_token` | GitHub PAT for source-control MCP tool (Secrets Manager) |
-| `github_repo` | Default GitHub repo for tooling (default: `alizoubair/flow`) |
+| `github_repo` | GitHub repo for MCP tooling and Amplify Git connection (default: `alizoubair/flow`) |
+| `enable_amplify_hosting` | Deploy frontend to Amplify Hosting (default: `true`) |
+| `amplify_branch_name` | Branch Amplify builds and hosts (default: `main`) |
 | `google_client_id` | Google OAuth client ID (optional) |
 | `google_client_secret` | Google OAuth client secret (optional) |
 | `github_client_id` | GitHub OAuth client ID (optional) |
