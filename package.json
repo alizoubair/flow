@@ -1,0 +1,27 @@
+{
+  "name": "flow",
+  "version": "1.0.0",
+  "description": "**A low-code tool for creating and configuring interactive CI/CD pipelines to be exported for different CI/CD platforms.**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://alizoubair: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@github.com/alizoubair/flow.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/alizoubair/flow/issues"
+  },
+  "homepage": "https://github.com/alizoubair/flow#readme",
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
