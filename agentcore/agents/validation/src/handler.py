@@ -18,10 +18,13 @@ import json
 import logging
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 
+from shared.telemetry import setup_strands_telemetry
 from .agent import build_agent
 
 logger = logging.getLogger(__name__)
 logger.setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+
+setup_strands_telemetry()
 
 app = BedrockAgentCoreApp()
 
@@ -38,7 +41,7 @@ def handler(payload: dict, context) -> str:
     Returns:
         JSON string with validation results (valid, score, checks, suggestions)
     """
-    pipeline = payload.get('pipeline', {})
+    pipeline = (payload.get('task') or {}).get('pipeline') or payload.get('pipeline', {})
 
     if not pipeline:
         return json.dumps({'error': 'pipeline is required'})
