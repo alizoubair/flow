@@ -88,12 +88,6 @@ AgentCore Runtime service metrics: sessions, invocations, errors, throttles, vCP
 
 ![Runtime metrics](docs/observability-runtime-metrics.JPG)
 
-### FM token usage
-
-Per-agent **Total tokens** and **FM token usage** are derived from OpenTelemetry spans with `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` on Bedrock model-call spans. Requires `strands-agents[otel]` in agent images and successful Bedrock invocations after deploy. Run a full pipeline flow (analyze → generate → validate → export), then allow 5–15 minutes for charts to update.
-
-Terraform wiring: [infrastructure/terraform/README.md](infrastructure/terraform/README.md) · Agent instrumentation: [agentcore/README.md](agentcore/README.md)
-
 ## Repository layout
 
 ```
