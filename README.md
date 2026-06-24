@@ -43,8 +43,56 @@ All agent runtimes run as containerized services on **AgentCore Runtime** (ECR +
 
 | Component | Role |
 |-----------|------|
-| **AgentCore Observability** | ADOT/OpenTelemetry traces and vended logs → CloudWatch + X-Ray |
+| **AgentCore Observability** | ADOT/OpenTelemetry traces and vended logs → CloudWatch GenAI Observability |
 | **AgentCore Evaluations** | Online LLM-as-a-Judge scoring on live orchestrator traffic |
+
+## Observability
+
+All five agent runtimes and AgentCore Memory export **APPLICATION_LOGS** and **TRACES** to [CloudWatch GenAI Observability](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/GenAI-observability.html). Agents run with ADOT (`opentelemetry-instrument`) and Strands OTLP telemetry so sessions, traces, FM token usage, and runtime metrics appear in the **Bedrock AgentCore** dashboard.
+
+**Console:** CloudWatch → GenAI Observability → Bedrock AgentCore → Agents
+
+After `terraform apply`:
+
+```bash
+cd infrastructure/terraform/environments/dev
+terraform output genai_observability_console_url
+terraform output observability_application_log_groups
+```
+
+### Overview
+
+Account-level summary: total tokens, agents/endpoints, sessions, traces, error and throttle rates.
+
+![GenAI Observability overview](docs/observability-overview.JPG)
+
+### Agents
+
+Per-runtime metrics. Agent names follow `{project}_{env}_{component}` with environment **bedrock-agentcore**.
+
+![Bedrock AgentCore agents](docs/observability-agents.JPG)
+
+| Agent | Role |
+|-------|------|
+| `flow_dev_orchestrator` | Coordinates workflow and WebSocket chat |
+| `flow_dev_repo_analysis` | GitHub repo analysis via MCP Gateway |
+| `flow_dev_pipeline_gen` | Pipeline JSON generation |
+| `flow_dev_validation` | Pipeline quality scoring |
+| `flow_dev_export` | CI/CD config export |
+
+Click an agent to open **Sessions**, **Traces**, and (for the orchestrator) **Evaluations**.
+
+### Runtime metrics
+
+AgentCore Runtime service metrics: sessions, invocations, errors, throttles, vCPU, and memory. Can lag by up to ~60 minutes.
+
+![Runtime metrics](docs/observability-runtime-metrics.JPG)
+
+### FM token usage
+
+Per-agent **Total tokens** and **FM token usage** are derived from OpenTelemetry spans with `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` on Bedrock model-call spans. Requires `strands-agents[otel]` in agent images and successful Bedrock invocations after deploy. Run a full pipeline flow (analyze → generate → validate → export), then allow 5–15 minutes for charts to update.
+
+Terraform wiring: [infrastructure/terraform/README.md](infrastructure/terraform/README.md) · Agent instrumentation: [agentcore/README.md](agentcore/README.md)
 
 ## Repository layout
 
