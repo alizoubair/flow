@@ -15,7 +15,7 @@ from .prompts.system_prompts import REPO_ANALYSIS_SYSTEM_PROMPT
 logger = logging.getLogger(__name__)
 
 AWS_REGION = os.environ.get('AWS_REGION', 'us-west-2')
-MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'us.anthropic.claude-sonnet-4-5-20250929-v1:0')
+MODEL_ID = os.environ.get('BEDROCK_MODEL_ID', 'us.anthropic.claude-haiku-4-5-20251001-v1:0')
 
 
 def analyze_repository(repo_url: str) -> str:

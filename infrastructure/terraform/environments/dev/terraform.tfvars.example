@@ -17,3 +17,12 @@ google_client_secret = ""
 # Get from: https://github.com/settings/developers
 github_client_id     = ""
 github_client_secret = ""
+
+# Bedrock model IDs per agent — override to swap models without code changes.
+# Orchestrator handles user-facing conversation; keep on Sonnet.
+# Sub-agents are right-sized to Haiku to reduce cost.
+orchestrator_model_id  = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+repo_analysis_model_id = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+pipeline_gen_model_id  = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+validation_model_id    = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+export_model_id        = "us.anthropic.claude-haiku-4-5-20251001-v1:0"

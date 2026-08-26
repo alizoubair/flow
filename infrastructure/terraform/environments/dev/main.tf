@@ -316,7 +316,7 @@ module "orchestrator_runtime" {
   # Environment variables
   extra_env_vars = {
     PIPELINES_TABLE_NAME    = module.dynamodb.pipelines_table_name
-    BEDROCK_MODEL_ID        = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_MODEL_ID        = var.orchestrator_model_id
     MEMORY_ID               = module.agentcore_memory.memory_id
     REPO_ANALYSIS_AGENT_URL = module.repo_analysis_runtime.agent_runtime_arn
     PIPELINE_GEN_AGENT_URL  = module.pipeline_gen_runtime.agent_runtime_arn
@@ -378,7 +378,7 @@ module "repo_analysis_runtime" {
 
   # Environment variables
   extra_env_vars = {
-    BEDROCK_MODEL_ID        = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_MODEL_ID        = var.repo_analysis_model_id
     GATEWAY_MCP_URL         = module.gateway.gateway_url
     GATEWAY_AUTH_SECRET_ARN = aws_secretsmanager_secret.gateway_m2m_auth.arn
     COGNITO_TOKEN_URL       = "${module.cognito.hosted_ui_url}/oauth2/token"
@@ -429,7 +429,7 @@ module "pipeline_gen_runtime" {
 
   # Environment variables
   extra_env_vars = {
-    BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_MODEL_ID = var.pipeline_gen_model_id
   }
 
   depends_on = [module.s3]
@@ -477,7 +477,7 @@ module "validation_runtime" {
 
   # Environment variables
   extra_env_vars = {
-    BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_MODEL_ID = var.validation_model_id
   }
 
   depends_on = [module.s3]
@@ -525,7 +525,7 @@ module "export_runtime" {
 
   # Environment variables
   extra_env_vars = {
-    BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_MODEL_ID = var.export_model_id
   }
 
   depends_on = [module.s3]

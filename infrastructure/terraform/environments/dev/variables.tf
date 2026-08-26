@@ -51,3 +51,33 @@ variable "amplify_branch_name" {
   type        = string
   default     = "main"
 }
+
+variable "orchestrator_model_id" {
+  description = "Bedrock model ID for the Orchestrator agent"
+  type        = string
+  default     = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+}
+
+variable "repo_analysis_model_id" {
+  description = "Bedrock model ID for the Repo Analysis agent"
+  type        = string
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+}
+
+variable "pipeline_gen_model_id" {
+  description = "Bedrock model ID for the Pipeline Generation agent"
+  type        = string
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+}
+
+variable "validation_model_id" {
+  description = "Bedrock model ID for the Validation agent"
+  type        = string
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+}
+
+variable "export_model_id" {
+  description = "Bedrock model ID for the Export agent"
+  type        = string
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+}
