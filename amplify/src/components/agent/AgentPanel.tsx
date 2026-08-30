@@ -6,7 +6,7 @@ import {
   Circle, CheckCircle2, XCircle, Code2, History, Workflow, Trash2, MoreHorizontal, Lock
 } from 'lucide-react';
 import { wsService } from '../../services/websocket';
-import { conversationApi, ConversationItem } from '../../services/api';
+import { conversationApi, pipelineApi, ConversationItem } from '../../services/api';
 import { authService } from '../../services/auth';
 import { parsePipelineToReactFlow } from '../../services/pipelineParser';
 import { usePipelineStore } from '../../store/pipelineStore';
@@ -340,9 +340,19 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
               edgeCount: pipeline.edges.length,
               stageTypes: pipeline.nodes.map(n => n.data.label as string),
             };
-            const { initPipeline, pipelineId } = usePipelineStore.getState();
-            const id = pipelineId || `pipeline-${Date.now()}`;
+            const { initPipeline } = usePipelineStore.getState();
+            const id = `pipeline-${Date.now()}`;
             initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
+
+            // Save generated pipeline to database if user is authenticated
+            if (authService.isAuthenticated()) {
+              pipelineApi.create({
+                name: pipeline.name,
+                description: `Generated from: ${prompt.trim().substring(0, 100)}`,
+                nodes: pipeline.nodes,
+                edges: pipeline.edges,
+              }).catch(err => console.error('Failed to save generated pipeline:', err));
+            }
           }
 
           // Generate summaries for each step
