@@ -28,7 +28,7 @@ class MemoryHook(HookProvider):
     - on_message_added: saves each message to AgentCore Memory
     """
 
-    def __init__(self, memory_id: str, actor_id: str, session_id: str, k: int = 5):
+    def __init__(self, memory_id: str, actor_id: str, session_id: str, k: int = 2):
         self.memory_id = memory_id
         self.actor_id = actor_id
         self.session_id = session_id
