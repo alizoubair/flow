@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   X, Play, Loader, Bot, GitBranch, ShieldCheck,
   FileCode2, Search, Clock, RotateCcw, ChevronRight,
-  Circle, CheckCircle2, XCircle, Code2, History, Workflow, Trash2, MoreHorizontal
+  Circle, CheckCircle2, XCircle, Code2, History, Workflow, Trash2, MoreHorizontal, Lock
 } from 'lucide-react';
 import { wsService } from '../../services/websocket';
 import { conversationApi, ConversationItem } from '../../services/api';
+import { authService } from '../../services/auth';
 import { parsePipelineToReactFlow } from '../../services/pipelineParser';
 import { usePipelineStore } from '../../store/pipelineStore';
 import './AgentPanel.css';
@@ -50,6 +52,7 @@ const AGENT_META: Record<string, { label: string; icon: React.ReactNode }> = {
 };
 
 const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'generate' | 'output' | 'export' | 'history'>('generate');
   const [prompt, setPrompt] = useState('');
   const [runs, setRuns] = useState<GenerationRun[]>([]);
@@ -61,6 +64,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const [history, setHistory] = useState<ConversationItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isResizing = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(0);
@@ -380,6 +384,11 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
 
   const handleRun = () => {
     if (!prompt.trim() || isRunning) return;
+
+    if (!authService.isAuthenticated()) {
+      setShowLoginPrompt(true);
+      return;
+    }
 
     if (!wsConnected) {
       alert('WebSocket is not connected. Please check your connection and try again.');
@@ -839,6 +848,32 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Login prompt modal */}
+      {showLoginPrompt && (
+        <div className="ap-modal-overlay" onClick={() => setShowLoginPrompt(false)}>
+          <div className="ap-modal" onClick={e => e.stopPropagation()}>
+            <div className="ap-modal-icon">
+              <Lock size={32} />
+            </div>
+            <h2 className="ap-modal-title">Sign in to use agents</h2>
+            <p className="ap-modal-desc">
+              Create an account or sign in to unlock AI-powered pipeline generation, analysis, and export.
+            </p>
+            <div className="ap-modal-actions">
+              <button className="ap-modal-btn primary" onClick={() => navigate('/signup')}>
+                Create Account
+              </button>
+              <button className="ap-modal-btn" onClick={() => navigate('/login')}>
+                Sign In
+              </button>
+            </div>
+            <button className="ap-modal-close" onClick={() => setShowLoginPrompt(false)}>
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
     </div>
