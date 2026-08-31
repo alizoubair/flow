@@ -22,16 +22,21 @@ class DecimalEncoder(json.JSONEncoder):
 
 def get_user_id(event):
     """
-    Extract user ID (sub) from Cognito JWT claims injected by API Gateway
-    Cognito User Pool Authorizer puts claims under:
-      event['requestContext']['authorizer']['claims']
+    Extract user ID (sub) from Cognito JWT claims injected by API Gateway.
+    HTTP API v2 with JWT authorizer puts claims under:
+      event['requestContext']['authorizer']['jwt']['claims']
     """
     try:
-        claims = event['requestContext']['authorizer']['claims']
+        # HTTP API v2 JWT authorizer structure
+        claims = event['requestContext']['authorizer']['jwt']['claims']
         return claims['sub']
     except (KeyError, TypeError):
-        # Fallback for local testing without a real authorizer
-        return event.get('requestContext', {}).get('authorizer', {}).get('principalId', 'demo-user')
+        try:
+            # Fallback: REST API / Cognito User Pool authorizer structure
+            claims = event['requestContext']['authorizer']['claims']
+            return claims['sub']
+        except (KeyError, TypeError):
+            raise ValueError("Unable to extract user_id from request context — authorizer may not be configured")
 
 
 def build_response(status_code, body):

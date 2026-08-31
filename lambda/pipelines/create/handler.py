@@ -39,12 +39,16 @@ def lambda_handler(event, context):
             'updatedAt': timestamp,
         }
 
+        print(f"[pipeline-create] Saving pipeline {pipeline_id} for user {user_id}")
         table.put_item(Item=pipeline)
 
         return build_response(201, pipeline)
 
     except json.JSONDecodeError:
+        print(f"[pipeline-create] JSON decode error")
         return build_error_response(400, "Invalid JSON in request body")
     except Exception as e:
-        print(f"Error: {str(e)}")
+        import traceback
+        print(f"[pipeline-create] Error: {str(e)}")
+        print(f"[pipeline-create] Traceback: {traceback.format_exc()}")
         return build_error_response(500, "Internal server error")
