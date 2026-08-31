@@ -6,7 +6,7 @@ import {
   Circle, CheckCircle2, XCircle, Code2, History, Workflow, Trash2, MoreHorizontal, Lock
 } from 'lucide-react';
 import { wsService } from '../../services/websocket';
-import { conversationApi, pipelineApi, ConversationItem } from '../../services/api';
+import { pipelineApi } from '../../services/api';
 import { authService } from '../../services/auth';
 import { parsePipelineToReactFlow } from '../../services/pipelineParser';
 import { usePipelineStore } from '../../store/pipelineStore';
@@ -61,8 +61,8 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
   const [width, setWidth] = useState(370);
   const [wsConnected, setWsConnected] = useState(false);
   const [wsError, setWsError] = useState<string | null>(null);
-  const [history, setHistory] = useState<ConversationItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
+  const [savedPipelines, setSavedPipelines] = useState<any[]>([]);
+  const [pipelinesLoading, setPipelinesLoading] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const isResizing = useRef(false);
@@ -114,13 +114,15 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     };
   }, []);
 
-  // Fetch conversation history on mount
+  // Fetch saved pipelines when history tab is opened
   useEffect(() => {
-    conversationApi.list(20)
-      .then(data => setHistory(data.conversations))
-      .catch(err => console.error('Failed to load history:', err))
-      .finally(() => setHistoryLoading(false));
-  }, []);
+    if (tab !== 'history' || !authService.isAuthenticated()) return;
+    setPipelinesLoading(true);
+    pipelineApi.list()
+      .then(data => setSavedPipelines(data.pipelines))
+      .catch(err => console.error('Failed to load pipelines:', err))
+      .finally(() => setPipelinesLoading(false));
+  }, [tab]);
 
   const onResizeStart = useCallback((e: React.MouseEvent) => {
     isResizing.current = true;
@@ -345,13 +347,18 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
 
             // Save generated pipeline to database if user is authenticated
-            if (authService.isAuthenticated()) {
+            const isAuth = authService.isAuthenticated();
+            console.log('[AgentPanel] isAuthenticated:', isAuth);
+            if (isAuth) {
+              console.log('[AgentPanel] Saving pipeline:', {name: pipeline.name, nodes: pipeline.nodes.length, edges: pipeline.edges.length});
               pipelineApi.create({
                 name: pipeline.name,
-                description: `Generated from: ${prompt.trim().substring(0, 100)}`,
+                description: prompt.trim().substring(0, 100),
                 nodes: pipeline.nodes,
                 edges: pipeline.edges,
-              }).catch(err => console.error('Failed to save generated pipeline:', err));
+              })
+                .then(result => console.log('[AgentPanel] Pipeline saved successfully:', result.id))
+                .catch(err => console.error('[AgentPanel] Failed to save generated pipeline:', err));
             }
           }
 
@@ -503,34 +510,30 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
     }
   };
 
+  const handleLoadPipeline = async (pipeline: any) => {
+    try {
+      const full = await pipelineApi.get(pipeline.id);
+      const { initPipeline } = usePipelineStore.getState();
+      initPipeline(full.id, full.name, full.nodes, full.edges);
+      onClose();
+    } catch (err) {
+      console.error('Failed to load pipeline:', err);
+    }
+  };
+
+  const handleDeletePipeline = async (pipeline: any) => {
+    try {
+      await pipelineApi.delete(pipeline.id);
+      setSavedPipelines(prev => prev.filter(p => p.id !== pipeline.id));
+    } catch (err) {
+      console.error('Failed to delete pipeline:', err);
+    }
+  };
+
   const handleRestore = (run: GenerationRun) => {
     setActiveRunId(run.id);
     activeRunIdRef.current = run.id;
     setTab('output');
-  };
-
-  // Reopen a past generation: fetch the full record and render its pipeline.
-  const handleReopen = async (item: ConversationItem) => {
-    try {
-      const full = await conversationApi.get(item.createdAt);
-      const pipeline = parsePipelineToReactFlow(full.response || '');
-      if (pipeline) {
-        const { initPipeline, pipelineId } = usePipelineStore.getState();
-        const id = pipelineId || `pipeline-${Date.now()}`;
-        initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
-      }
-    } catch (err) {
-      console.error('Failed to reopen conversation:', err);
-    }
-  };
-
-  const handleDeleteHistory = async (item: ConversationItem) => {
-    try {
-      await conversationApi.remove(item.createdAt);
-      setHistory(prev => prev.filter(h => h.createdAt !== item.createdAt));
-    } catch (err) {
-      console.error('Failed to delete conversation:', err);
-    }
   };
 
   // Close the history item menu when clicking anywhere else.
@@ -589,7 +592,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         </button>
         <button className={`ap-tab ${tab === 'history' ? 'active' : ''}`} onClick={() => setTab('history')}>
           <History size={12} /> History
-          {(runs.length + history.length) > 0 && <span className="ap-tab-badge">{runs.length + history.length}</span>}
+          {(runs.length + savedPipelines.length) > 0 && <span className="ap-tab-badge">{runs.length + savedPipelines.length}</span>}
         </button>
       </div>
 
@@ -777,16 +780,16 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
       {/* Tab: History */}
       {tab === 'history' && (
         <div className="ap-body">
-          {historyLoading ? (
+          {pipelinesLoading ? (
             <div className="ap-empty">
               <Loader size={32} className="spin" />
-              <p>Loading history...</p>
+              <p>Loading pipelines...</p>
             </div>
-          ) : runs.length === 0 && history.length === 0 ? (
+          ) : runs.length === 0 && savedPipelines.length === 0 ? (
             <div className="ap-empty">
               <History size={32} />
-              <p>No runs yet</p>
-              <span>Your generation history will appear here.</span>
+              <p>No pipelines yet</p>
+              <span>Generated pipelines will appear here.</span>
             </div>
           ) : (
             <div className="ap-history-list">
@@ -812,39 +815,39 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                   )}
                 </div>
               ))}
-              {/* Persisted history from API */}
-              {history.map((item) => (
-                <div key={`hist-${item.createdAt}`} className="ap-history-card">
+              {/* Saved pipelines from API */}
+              {savedPipelines.map((pipeline) => (
+                <div key={pipeline.id} className="ap-history-card">
                   <div className="ap-history-card-top">
                     <span className="ap-run-badge completed">
-                      <CheckCircle2 size={10} /> completed
+                      <CheckCircle2 size={10} /> saved
                     </span>
                     <div className="ap-history-top-right">
                       <span className="ap-history-time">
-                        <Clock size={10} /> {new Date(item.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        <Clock size={10} /> {new Date(pipeline.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <div className="ap-history-menu-wrap">
                         <button
                           className="ap-history-menu-btn"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setMenuOpenId(menuOpenId === item.createdAt ? null : item.createdAt);
+                            setMenuOpenId(menuOpenId === pipeline.id ? null : pipeline.id);
                           }}
                           aria-label="Options"
                         >
                           <MoreHorizontal size={14} />
                         </button>
-                        {menuOpenId === item.createdAt && (
+                        {menuOpenId === pipeline.id && (
                           <div className="ap-history-menu" onClick={(e) => e.stopPropagation()}>
                             <button
                               className="ap-history-menu-item"
-                              onClick={() => { setMenuOpenId(null); handleReopen(item); }}
+                              onClick={() => { setMenuOpenId(null); handleLoadPipeline(pipeline); }}
                             >
-                              <RotateCcw size={13} /> Reopen
+                              <RotateCcw size={13} /> Load
                             </button>
                             <button
                               className="ap-history-menu-item danger"
-                              onClick={() => { setMenuOpenId(null); handleDeleteHistory(item); }}
+                              onClick={() => { setMenuOpenId(null); handleDeletePipeline(pipeline); }}
                             >
                               <Trash2 size={13} /> Delete
                             </button>
@@ -853,7 +856,10 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                       </div>
                     </div>
                   </div>
-                  <p className="ap-history-prompt">"{item.prompt}"</p>
+                  <p className="ap-history-prompt">{pipeline.name}</p>
+                  {pipeline.description && (
+                    <p className="ap-history-detail">{pipeline.description}</p>
+                  )}
                 </div>
               ))}
             </div>
