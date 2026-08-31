@@ -768,6 +768,21 @@ body.dark-theme .ap-summary-chip {
   overflow: hidden;
 }
 
+.ap-history-detail {
+  margin: 3px 0 0;
+  font-size: 10px;
+  color: #9ca3af;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+body.dark-theme .ap-history-detail {
+  color: #6b7280;
+}
+
 .ap-restore-btn {
   display: flex;
   align-items: center;
