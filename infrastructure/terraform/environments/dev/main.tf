@@ -120,7 +120,15 @@ module "lambda" {
   pipelines_table_arn       = module.dynamodb.pipelines_table_arn
   conversations_table_name  = module.dynamodb.conversations_table_name
   conversations_table_arn   = module.dynamodb.conversations_table_arn
-  lambda_src_path           = local.lambda_src_path
+  ci_runs_table_name       = module.dynamodb.ci_runs_table_name
+  ci_runs_table_arn        = module.dynamodb.ci_runs_table_arn
+  ci_artifacts_bucket_name = module.s3.ci_artifacts_bucket_name
+  ci_artifacts_bucket_arn  = module.s3.ci_artifacts_bucket_arn
+  source_s3_bucket         = module.s3.artifacts_bucket_name
+  git_secret_arn           = aws_secretsmanager_secret.git_provider_tokens.arn
+  account_id               = data.aws_caller_identity.current.account_id
+  aws_profile              = var.aws_profile
+  lambda_src_path          = local.lambda_src_path
 
   ws_api_id            = module.apigateway.ws_api_id
   ws_api_execution_arn = module.apigateway.ws_api_execution_arn

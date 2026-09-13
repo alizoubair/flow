@@ -139,3 +139,30 @@ output "observability_application_log_groups" {
   description = "APPLICATION_LOGS vended log groups per AgentCore resource"
   value       = { for k, m in module.observability : k => m.log_group_name }
 }
+
+# CI Runner
+
+output "ci_runs_table_name" {
+  description = "DynamoDB table for CI run state and stage checkpoints"
+  value       = module.dynamodb.ci_runs_table_name
+}
+
+output "ci_artifacts_bucket_name" {
+  description = "S3 bucket for inter-stage artifact transit (7-day TTL)"
+  value       = module.s3.ci_artifacts_bucket_name
+}
+
+output "ci_orchestrator_function_name" {
+  description = "CI orchestrator Lambda function name"
+  value       = module.lambda.ci_orchestrator_function_name
+}
+
+output "ci_runner_image_arn" {
+  description = "Lambda MicroVM image ARN used as imageIdentifier in run_microvm()"
+  value       = module.lambda.ci_runner_image_arn
+}
+
+output "ci_runner_execution_role_arn" {
+  description = "IAM execution role ARN passed to run_microvm() as executionRoleArn"
+  value       = module.lambda.ci_runner_execution_role_arn
+}

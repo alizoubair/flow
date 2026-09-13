@@ -93,11 +93,12 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
 
 locals {
   pipeline_routes = {
-    "POST /pipelines"        = var.pipeline_function_arns["pipeline-create"]
-    "GET /pipelines"         = var.pipeline_function_arns["pipeline-list"]
-    "GET /pipelines/{id}"    = var.pipeline_function_arns["pipeline-get"]
-    "PUT /pipelines/{id}"    = var.pipeline_function_arns["pipeline-update"]
-    "DELETE /pipelines/{id}" = var.pipeline_function_arns["pipeline-delete"]
+    "POST /pipelines"            = var.pipeline_function_arns["pipeline-create"]
+    "GET /pipelines"             = var.pipeline_function_arns["pipeline-list"]
+    "GET /pipelines/{id}"        = var.pipeline_function_arns["pipeline-get"]
+    "PUT /pipelines/{id}"        = var.pipeline_function_arns["pipeline-update"]
+    "DELETE /pipelines/{id}"     = var.pipeline_function_arns["pipeline-delete"]
+    "POST /pipelines/{id}/run"   = var.pipeline_function_arns["pipeline-run"]
   }
 }
 
