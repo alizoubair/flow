@@ -178,3 +178,54 @@ body.dark-theme .stage-toggle-btn:hover {
 .stage-node.collapsed .react-flow__node {
   display: none !important;
 }
+
+/* ─── Run status overlays ─────────────────────────────────────────────────── */
+
+.stage-node.run-pending {
+  border-color: #9ca3af !important;
+  border-style: dashed !important;
+  opacity: 0.7;
+}
+
+.stage-node.run-running {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  animation: stage-pulse 1.8s ease-in-out infinite;
+}
+
+.stage-node.run-completed {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15);
+}
+
+.stage-node.run-failed {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+@keyframes stage-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18); }
+  50%       { box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.08); }
+}
+
+.stage-run-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stage-run-icon {
+  flex-shrink: 0;
+}
+
+.stage-run-icon.running {
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
+.stage-run-icon.completed { color: #22c55e; }
+.stage-run-icon.failed    { color: #ef4444; }
+.stage-run-icon.pending   { color: #9ca3af; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
