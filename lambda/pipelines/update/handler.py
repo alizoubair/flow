@@ -44,7 +44,7 @@ def lambda_handler(event, context):
                 'PK': f"USER#{user_id}",
                 'SK': f"PIPELINE#{pipeline_id}"
             },
-            UpdateExpression='SET #name = :name, description = :desc, nodes = :nodes, edges = :edges, version = version + :inc, updatedAt = :updated',
+            UpdateExpression='SET #name = :name, description = :desc, nodes = :nodes, edges = :edges, repo_url = :repo_url, stages = :stages, runner_stages = :runner_stages, version = version + :inc, updatedAt = :updated',
             ExpressionAttributeNames={
                 '#name': 'name'
             },
@@ -53,6 +53,9 @@ def lambda_handler(event, context):
                 ':desc': body.get('description', ''),
                 ':nodes': body['nodes'],
                 ':edges': body['edges'],
+                ':repo_url': body.get('repo_url', ''),
+                ':stages': body.get('stages', []),
+                ':runner_stages': body.get('runner_stages', []),
                 ':inc': 1,
                 ':updated': timestamp
             },

@@ -21,14 +21,17 @@ def lambda_handler(event, context):
         pipelines = response.get('Items', [])
 
         # Return simplified list (exclude full nodes/edges for performance)
+        def _pipeline_id(p):
+            return p.get('id') or p.get('SK', '').replace('PIPELINE#', '')
+
         pipeline_list = [{
-            'id': p['id'],
-            'name': p['name'],
+            'id': _pipeline_id(p),
+            'name': p.get('name', 'Untitled Pipeline'),
             'description': p.get('description', ''),
             'version': p.get('version', 1),
-            'createdAt': p['createdAt'],
-            'updatedAt': p['updatedAt'],
-        } for p in pipelines]
+            'createdAt': p.get('createdAt', ''),
+            'updatedAt': p.get('updatedAt', ''),
+        } for p in pipelines if _pipeline_id(p)]
 
         return build_response(200, {
             'pipelines': pipeline_list,

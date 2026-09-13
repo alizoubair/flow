@@ -33,6 +33,8 @@ def lambda_handler(event, context):
             'description': body.get('description', ''),
             'nodes': body['nodes'],
             'edges': body['edges'],
+            'repo_url': body.get('repo_url', ''),
+            'stages': body.get('stages', []),
             'status': 'draft',
             'version': 1,
             'createdAt': timestamp,
