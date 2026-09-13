@@ -1,4 +1,7 @@
-# <img src="docs/flow-icon.png" alt="Flow" width="48" valign="middle" /> Flow
+<div align="center">
+  <img src="docs/flow-icon.png" alt="Flow" width="80" />
+  <h1>Flow</h1>
+</div>
 
 **A low-code tool for generating, running and exporting CI/CD pipelines — Bedrock agents, durable Lambda execution and ephemeral Lambda MicroVM runners.**
 
