@@ -47,6 +47,7 @@ def handler(payload: dict, context) -> str:
         JSON string with the generated pipeline (stages + edges)
     """
     analysis = payload.get('analysis') or payload.get('task') or {}
+    repo_url = payload.get('repo_url', '')
 
     if not analysis:
         return json.dumps({'error': 'analysis is required'})
@@ -54,6 +55,7 @@ def handler(payload: dict, context) -> str:
     logger.info(f'Generating pipeline for: {analysis.get("language", "unknown")} / {analysis.get("framework", "unknown")}')
 
     state = new_pipeline_state()
+    state['repo_url'] = repo_url
     agent = build_agent(state)
     agent(f'Generate a CI/CD pipeline for this project:\n{json.dumps(analysis, indent=2)}')
 

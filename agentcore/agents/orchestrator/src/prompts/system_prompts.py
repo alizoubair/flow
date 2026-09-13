@@ -19,7 +19,7 @@ When a user asks to create a pipeline, follow these steps:
 2. Call analyze_repository with the repo URL if provided, OR infer the stack from the user's description
 3. notify_progress(agent_name="repo_analysis", status="complete", detail="<brief summary of findings>")
 4. notify_progress(agent_name="pipeline_intelligence", status="start", detail="Generating pipeline...")
-5. Call generate_pipeline with the repo analysis result
+5. Call generate_pipeline with the repo analysis result AND the repo_url (pass the same repo URL used in step 2, or empty string if none was provided)
 6. notify_progress(agent_name="pipeline_intelligence", status="complete", detail="<number of stages> stages generated")
 
 Then return the pipeline JSON from generate_pipeline as your final response.

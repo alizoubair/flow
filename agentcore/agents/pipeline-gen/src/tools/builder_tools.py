@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def new_pipeline_state() -> dict[str, Any]:
     """Create an empty pipeline state container for one generation run."""
-    return {'name': '', 'stages': [], 'edges': []}
+    return {'name': '', 'stages': [], 'edges': [], 'repo_url': ''}
 
 
 def assemble_pipeline(state: dict[str, Any]) -> dict[str, Any]:
@@ -34,7 +34,28 @@ def assemble_pipeline(state: dict[str, Any]) -> dict[str, Any]:
         'name': state['name'] or 'Generated Pipeline',
         'stages': stages,
         'edges': edges,
+        'repo_url': state.get('repo_url', ''),
+        'runner_stages': _to_runner_stages(stages),
     }
+
+
+def _to_runner_stages(stages: list[dict]) -> list[dict]:
+    """Convert canvas stages to the flat step format the CI runner expects."""
+    runner_stages = []
+    for stage in stages:
+        steps = []
+        for task in stage.get('tasks', []):
+            commands = task.get('commands', [])
+            if commands:
+                steps.append({
+                    'name': task['name'],
+                    'run': ' && '.join(commands),
+                })
+        runner_stages.append({
+            'name': stage.get('label', stage.get('id', 'stage')).lower().replace(' ', '-'),
+            'steps': steps,
+        })
+    return runner_stages
 
 
 def build_pipeline_tools(state: dict[str, Any]) -> list:

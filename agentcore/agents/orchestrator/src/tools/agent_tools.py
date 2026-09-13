@@ -46,24 +46,29 @@ def build_tools(user_id: str, session_id: str) -> list:
         )
 
     @tool
-    def generate_pipeline(repo_analysis: dict) -> dict:
+    def generate_pipeline(repo_analysis: dict, repo_url: str = '') -> dict:
         """
         Generate a structured CI/CD pipeline based on repository analysis results.
 
         Args:
             repo_analysis: The analysis object from analyze_repository containing
                 language, framework, package_manager, test_framework, has_docker, etc.
+            repo_url: The original repository URL (e.g. https://github.com/user/repo).
+                Pass this through from analyze_repository so the pipeline can be
+                cloned and run by the CI runner.
 
         Returns:
-            Pipeline JSON with name, stages, and edges ready for canvas rendering.
+            Pipeline JSON with name, stages, edges, repo_url, and runner_stages.
         """
-        logger.info(f'generate_pipeline called. Analysis keys: {list(repo_analysis.keys()) if isinstance(repo_analysis, dict) else "N/A"}')
+        logger.info(f'generate_pipeline called. Analysis keys: {list(repo_analysis.keys()) if isinstance(repo_analysis, dict) else "N/A"}, repo_url: {repo_url}')
         if not PIPELINE_GEN_RUNTIME_ARN:
             return {'error': 'Pipeline generation agent not configured'}
 
+        task = {**repo_analysis, 'repo_url': repo_url} if repo_url else repo_analysis
+
         result = call_agent(
             runtime_arn=PIPELINE_GEN_RUNTIME_ARN,
-            task=repo_analysis,
+            task=task,
             user_id=user_id,
             session_id=session_id,
         )
