@@ -49,8 +49,32 @@ body.dark-theme .rp-resize-handle:active {
 .rp-header-left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
 }
+
+.rp-header-icon {
+  color: var(--text-muted, #9ca3af);
+  flex-shrink: 0;
+}
+
+.rp-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  white-space: nowrap;
+}
+
+.rp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+body.dark-theme .rp-header-title { color: #dce8ff; }
+body.dark-theme .rp-header-icon  { color: #6b7db3; }
 
 .rp-badge {
   font-size: 10px;

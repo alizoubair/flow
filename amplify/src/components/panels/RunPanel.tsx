@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, CheckCircle2, XCircle, Clock, Loader, Circle, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Clock, Loader, Circle, ChevronDown, ChevronRight, Terminal } from 'lucide-react';
 import './RunPanel.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ const StatusIcon: React.FC<{ status: StageRun['status']; size?: number }> = ({ s
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface RunPanelProps {
-  run: PipelineRun;
+  run?: PipelineRun;
   onClose: () => void;
 }
 
@@ -89,21 +89,22 @@ const RunPanel: React.FC<RunPanelProps> = ({ run, onClose }) => {
 
   // Tick every second while running (for live elapsed timers)
   useEffect(() => {
-    if (run.status !== 'running') return;
+    if (!run || run.status !== 'running') return;
     const t = setInterval(() => setTick(n => n + 1), 1000);
     return () => clearInterval(t);
-  }, [run.status]);
+  }, [run?.status]);
 
   // Auto-expand the currently running stage
   useEffect(() => {
+    if (!run) return;
     const running = run.stages.find(s => s.status === 'running');
     if (running) setExpanded(prev => new Set([...prev, running.name]));
-  }, [run.stages]);
+  }, [run?.stages]);
 
   // Scroll logs to bottom on new output
   useEffect(() => {
     logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [run.stages]);
+  }, [run?.stages]);
 
   const toggle = (name: string) =>
     setExpanded(prev => {
@@ -112,7 +113,7 @@ const RunPanel: React.FC<RunPanelProps> = ({ run, onClose }) => {
       return next;
     });
 
-  const totalMs = run.duration ?? (Date.now() - run.startedAt);
+  const totalMs = run ? (run.duration ?? (Date.now() - run.startedAt)) : 0;
 
   return (
     <div className="run-panel" style={{ width }}>
@@ -122,24 +123,40 @@ const RunPanel: React.FC<RunPanelProps> = ({ run, onClose }) => {
       {/* Header */}
       <div className="rp-header">
         <div className="rp-header-left">
-          {run.status === 'running'   && <Loader       size={14} className="rp-icon running"   />}
-          {run.status === 'completed' && <CheckCircle2 size={14} className="rp-icon completed" />}
-          {run.status === 'failed'    && <XCircle      size={14} className="rp-icon failed"    />}
-          <span className={`rp-badge ${run.status}`}>
-            {run.status === 'running' ? 'RUNNING' : run.status === 'completed' ? 'PASSED' : 'FAILED'}
-          </span>
-          <span className="rp-elapsed">
-            <Clock size={11} />
-            {run.status === 'running' ? elapsed(run.startedAt) : fmtMs(totalMs)}
-          </span>
+          <Terminal size={15} className="rp-header-icon" />
+          <span className="rp-header-title">Pipeline Output</span>
+          {run && (
+            <span className={`rp-badge ${run.status}`}>
+              {run.status === 'running' ? 'RUNNING' : run.status === 'completed' ? 'PASSED' : 'FAILED'}
+            </span>
+          )}
         </div>
-        <button className="rp-close" onClick={onClose} aria-label="Close run panel">
-          <X size={15} />
-        </button>
+        <div className="rp-header-right">
+          {run?.status === 'running'   && <Loader       size={13} className="rp-icon running"   />}
+          {run?.status === 'completed' && <CheckCircle2 size={13} className="rp-icon completed" />}
+          {run?.status === 'failed'    && <XCircle      size={13} className="rp-icon failed"    />}
+          {run && (
+            <span className="rp-elapsed">
+              <Clock size={11} />
+              {run.status === 'running' ? elapsed(run.startedAt) : fmtMs(totalMs)}
+            </span>
+          )}
+          <button className="rp-close" onClick={onClose} aria-label="Close run panel">
+            <X size={15} />
+          </button>
+        </div>
       </div>
 
+      {/* No run yet — placeholder */}
+      {!run && (
+        <div className="rp-empty" style={{ flexDirection: 'column', gap: 6, padding: '24px 16px' }}>
+          <span style={{ fontSize: 13 }}>No runs yet</span>
+          <span style={{ fontSize: 12 }}>Click <strong>Run</strong> to execute the pipeline</span>
+        </div>
+      )}
+
       {/* Stages */}
-      <div className="rp-stages">
+      {run && <div className="rp-stages">
         {run.stages.length === 0 && (
           <div className="rp-empty">
             <Loader size={14} className="rp-icon running" />
@@ -193,10 +210,10 @@ const RunPanel: React.FC<RunPanelProps> = ({ run, onClose }) => {
             </div>
           );
         })}
-      </div>
+      </div>}
 
       {/* Footer */}
-      {run.status !== 'running' && (
+      {run && run.status !== 'running' && (
         <div className={`rp-footer ${run.status}`}>
           {run.status === 'completed'
             ? `Pipeline passed in ${fmtMs(totalMs)}`
