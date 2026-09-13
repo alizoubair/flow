@@ -102,3 +102,31 @@ body.dark-theme .canvas-toolbar-btn.active {
 body.dark-theme .canvas-toolbar-divider {
   background: #374151;
 }
+
+
+/* Status dot on the Terminal/Output button */
+.canvas-toolbar-btn {
+  position: relative;
+}
+
+.toolbar-run-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.toolbar-run-dot.running {
+  background: #3b82f6;
+  animation: toolbar-dot-pulse 1.2s ease-in-out infinite;
+}
+
+.toolbar-run-dot.completed { background: #22c55e; }
+.toolbar-run-dot.failed    { background: #ef4444; }
+
+@keyframes toolbar-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Workflow, MousePointer2, Hand, Trash2, Minus, MoreHorizontal, Activity, Spline, Play } from 'lucide-react';
+import { Layers, Workflow, MousePointer2, Hand, Trash2, Minus, MoreHorizontal, Activity, Spline, Play, Terminal } from 'lucide-react';
 import { EdgeStyle } from '../../store/pipelineStore';
 import './CanvasToolbar.css';
 
@@ -13,12 +13,14 @@ interface CanvasToolbarProps {
   edgeStyle: EdgeStyle;
   isRunning?: boolean;
   runStatus?: 'running' | 'completed' | 'failed';
+  runPanelOpen?: boolean;
   onModeChange: (mode: CanvasMode) => void;
   onDelete: () => void;
   onToggleComponents: () => void;
   onToggleAgent: () => void;
   onEdgeStyleChange: (style: EdgeStyle) => void;
   onRunPipeline?: () => void;
+  onToggleOutput?: () => void;
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -29,12 +31,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   edgeStyle,
   isRunning = false,
   runStatus,
+  runPanelOpen = false,
   onModeChange,
   onDelete,
   onToggleComponents,
   onToggleAgent,
   onEdgeStyleChange,
   onRunPipeline,
+  onToggleOutput,
 }) => {
   return (
     <div className="canvas-toolbar">
@@ -109,15 +113,30 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
 
       {/* Run pipeline */}
       {onRunPipeline && (
-        <button
-          className={`canvas-toolbar-btn icon-only ${runStatus === 'completed' ? 'run-passed' : runStatus === 'failed' ? 'run-failed' : ''}`}
-          onClick={() => { if (!isRunning) onRunPipeline?.(); }}
-          aria-label="Run pipeline"
-          style={isRunning ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
-          title={isRunning ? 'Running…' : runStatus === 'completed' ? 'Passed — run again' : runStatus === 'failed' ? 'Failed — run again' : 'Run pipeline'}
-        >
-          <Play size={16} />
-        </button>
+        <>
+          <button
+            className="canvas-toolbar-btn icon-only"
+            onClick={() => { if (!isRunning) onRunPipeline?.(); }}
+            aria-label="Run pipeline"
+            style={isRunning ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+            title={isRunning ? 'Running…' : 'Run pipeline'}
+          >
+            <Play size={16} />
+          </button>
+          {onToggleOutput && (
+            <button
+              className={`canvas-toolbar-btn icon-only ${runPanelOpen ? 'active' : ''}`}
+              onClick={onToggleOutput}
+              aria-label="Toggle pipeline output"
+              title="Pipeline output"
+            >
+              <Terminal size={16} />
+              {runStatus && (
+                <span className={`toolbar-run-dot ${runStatus}`} />
+              )}
+            </button>
+          )}
+        </>
       )}
 
       <div className="canvas-toolbar-divider" />
