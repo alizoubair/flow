@@ -12,3 +12,13 @@ export interface AgentExecutionMessage {
   dsl?: string;
   error?: string;
 }
+
+export interface CiRunMessage {
+  type: 'stage_start' | 'step_output' | 'stage_complete' | 'pipeline_complete' | 'pipeline_failed' | 'error';
+  run_id: string;
+  stage?: string;
+  step?: string;
+  output?: string;
+  exit_code?: number;
+  message?: string;
+}

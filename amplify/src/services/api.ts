@@ -141,9 +141,9 @@ export const pipelineApi = {
   },
 
   /**
-   * Update pipeline nodes, edges and name — calls update_pipeline Lambda
+   * Update pipeline nodes, edges, name, repo_url and runner_stages
    */
-  update(id: string, payload: { name: string; nodes: any[]; edges: any[] }): Promise<PipelineResponse> {
+  update(id: string, payload: { name: string; nodes: any[]; edges: any[]; repo_url?: string; stages?: any[]; runner_stages?: any[] }): Promise<PipelineResponse> {
     return apiService.put<PipelineResponse>(`/pipelines/${id}`, payload);
   },
 
@@ -152,6 +152,14 @@ export const pipelineApi = {
    */
   delete(id: string): Promise<void> {
     return apiService.delete<void>(`/pipelines/${id}`);
+  },
+
+  /**
+   * Trigger a CI pipeline run — calls pipeline-run Lambda
+   * Returns run_id immediately; progress arrives via WebSocket
+   */
+  run(id: string): Promise<{ run_id: string; status: string }> {
+    return apiService.post<{ run_id: string; status: string }>(`/pipelines/${id}/run`, {});
   },
 };
 

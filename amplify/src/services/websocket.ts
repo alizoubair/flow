@@ -153,6 +153,18 @@ export class WebSocketService {
   }
 
   /**
+   * Trigger a CI pipeline run via WebSocket
+   * (alternative to the HTTP POST /pipelines/{id}/run endpoint)
+   */
+  runPipeline(pipelineId: string): void {
+    this.send({
+      action: 'orchestrator',
+      operation: 'run_pipeline',
+      payload: { pipeline_id: pipelineId },
+    });
+  }
+
+  /**
    * Register a close handler
    */
   onClose(handler: CloseHandler): () => void {
