@@ -17,3 +17,11 @@ output "artifacts_bucket_name" {
 output "artifacts_bucket_arn" {
   value = aws_s3_bucket.artifacts.arn
 }
+
+output "ci_artifacts_bucket_name" {
+  value = aws_s3_bucket.ci_artifacts.bucket
+}
+
+output "ci_artifacts_bucket_arn" {
+  value = aws_s3_bucket.ci_artifacts.arn
+}

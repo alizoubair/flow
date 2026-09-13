@@ -84,6 +84,53 @@ resource "aws_s3_bucket_public_access_block" "artifacts" {
   restrict_public_buckets = true
 }
 
+# S3 bucket for CI runner inter-stage artifact transit
+# Each stage runner writes build outputs here; the next stage reads them at startup.
+# No versioning needed (artifacts are write-once per run). Objects expire after 7 days.
+
+resource "aws_s3_bucket" "ci_artifacts" {
+  bucket        = var.account_id != "" ? "${var.app_name}-ci-artifacts-${var.account_id}" : "${var.app_name}-ci-artifacts"
+  force_destroy = true
+
+  tags = { Name = "${var.app_name}-ci-artifacts" }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "ci_artifacts" {
+  bucket = aws_s3_bucket.ci_artifacts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "ci_artifacts" {
+  bucket = aws_s3_bucket.ci_artifacts.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "ci_artifacts" {
+  bucket = aws_s3_bucket.ci_artifacts.id
+
+  rule {
+    id     = "expire-run-artifacts"
+    status = "Enabled"
+
+    filter {
+      prefix = "runs/"
+    }
+
+    expiration {
+      days = 7
+    }
+  }
+}
+
 resource "aws_s3_bucket_cors_configuration" "artifacts" {
   bucket = aws_s3_bucket.artifacts.id
 

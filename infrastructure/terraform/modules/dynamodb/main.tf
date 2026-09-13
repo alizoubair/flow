@@ -75,6 +75,62 @@ resource "aws_dynamodb_table" "pipelines" {
   tags = { Name = "${var.app_name}-pipelines" }
 }
 
+# CI runs table
+# Durable checkpoint store for the CI runner orchestrator.
+# runId is the sole hash key; stage results are written as nested map attributes.
+# TTL auto-expires run records after 7 days.
+
+resource "aws_dynamodb_table" "ci_runs" {
+  name         = "${var.app_name}-ci-runs"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "runId"
+
+  attribute {
+    name = "runId"
+    type = "S"
+  }
+
+  attribute {
+    name = "userId"
+    type = "S"
+  }
+
+  attribute {
+    name = "createdAt"
+    type = "S"
+  }
+
+  attribute {
+    name = "status"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name            = "UserRunsIndex"
+    hash_key        = "userId"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "StatusIndex"
+    hash_key        = "status"
+    range_key       = "createdAt"
+    projection_type = "ALL"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  point_in_time_recovery {
+    enabled = false
+  }
+
+  tags = { Name = "${var.app_name}-ci-runs" }
+}
+
 # Conversations table
 # Stores chat history for the frontend (prompt, response, timestamps)
 # PK = userId, SK = createdAt (ISO timestamp) for chronological queries
