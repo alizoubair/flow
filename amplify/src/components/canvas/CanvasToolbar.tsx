@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, Workflow, MousePointer2, Hand, Trash2, Minus, MoreHorizontal, Activity, Spline } from 'lucide-react';
+import { Layers, Workflow, MousePointer2, Hand, Trash2, Minus, MoreHorizontal, Activity, Spline, Play } from 'lucide-react';
 import { EdgeStyle } from '../../store/pipelineStore';
 import './CanvasToolbar.css';
 
@@ -11,11 +11,14 @@ interface CanvasToolbarProps {
   agentOpen: boolean;
   hasSelection: boolean;
   edgeStyle: EdgeStyle;
+  isRunning?: boolean;
+  runStatus?: 'running' | 'completed' | 'failed';
   onModeChange: (mode: CanvasMode) => void;
   onDelete: () => void;
   onToggleComponents: () => void;
   onToggleAgent: () => void;
   onEdgeStyleChange: (style: EdgeStyle) => void;
+  onRunPipeline?: () => void;
 }
 
 const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
@@ -24,11 +27,14 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   agentOpen,
   hasSelection,
   edgeStyle,
+  isRunning = false,
+  runStatus,
   onModeChange,
   onDelete,
   onToggleComponents,
   onToggleAgent,
   onEdgeStyleChange,
+  onRunPipeline,
 }) => {
   return (
     <div className="canvas-toolbar">
@@ -98,6 +104,21 @@ const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       >
         <Activity size={16} />
       </button>
+
+      <div className="canvas-toolbar-divider" />
+
+      {/* Run pipeline */}
+      {onRunPipeline && (
+        <button
+          className={`canvas-toolbar-btn icon-only ${runStatus === 'completed' ? 'run-passed' : runStatus === 'failed' ? 'run-failed' : ''}`}
+          onClick={() => { if (!isRunning) onRunPipeline?.(); }}
+          aria-label="Run pipeline"
+          style={isRunning ? { opacity: 0.45, pointerEvents: 'none' } : undefined}
+          title={isRunning ? 'Running…' : runStatus === 'completed' ? 'Passed — run again' : runStatus === 'failed' ? 'Failed — run again' : 'Run pipeline'}
+        >
+          <Play size={16} />
+        </button>
+      )}
 
       <div className="canvas-toolbar-divider" />
 
