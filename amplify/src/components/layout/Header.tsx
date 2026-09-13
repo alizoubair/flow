@@ -259,6 +259,7 @@ const Header: React.FC = () => {
         </div>
 
         <div className="header-logo">
+          <img src="/flow-icon.png" alt="Flow" className="logo-icon" />
           <h1 className="logo-text">Flow</h1>
         </div>
         {pipelineId && currentPipeline && (
