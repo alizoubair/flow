@@ -278,7 +278,7 @@ export function parsePipelineToReactFlow(pipelineJson: string): {
       source: edge.source,
       target: edge.target,
       type: 'smoothstep',
-      animated: true,
+      animated: false,
     }));
 
     return {
