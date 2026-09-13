@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/flow-icon.png" alt="Flow" width="80" />
+  <img src="docs/flow-icon.png" alt="Flow" width="128" />
   <h1>Flow</h1>
 </div>
 
