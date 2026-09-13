@@ -49,21 +49,36 @@ locals {
     }
 
     pipeline = {
-      functions   = ["create", "get", "list", "update", "delete"]
+      functions   = ["create", "get", "list", "update", "delete", "run"]
       src_subdir  = "pipelines"
       runtime     = "python3.12"
       timeout     = 30
       memory_size = 256
-      layer_arn   = aws_lambda_layer_version.pipeline_shared.arn
+      layer_arn        = aws_lambda_layer_version.pipeline_shared.arn
+      extra_layer_arns = [aws_lambda_layer_version.ci_orchestrator_deps.arn]
       env_vars = {
-        PIPELINES_TABLE = var.pipelines_table_name
-        FLOW_AWS_REGION = var.aws_region
+        PIPELINES_TABLE          = var.pipelines_table_name
+        CONNECTIONS_TABLE        = var.ws_connections_table_name
+        CI_ORCHESTRATOR_FUNCTION = "${var.app_name}-ci-orchestrator"
+        FLOW_AWS_REGION          = var.aws_region
       }
       dynamodb_arns = [
         var.pipelines_table_arn,
         "${var.pipelines_table_arn}/index/*",
+        var.ws_connections_table_arn,
+        "${var.ws_connections_table_arn}/index/*",
       ]
-      extra_statements = []
+      extra_statements = [
+        {
+          Sid    = "InvokeCiOrchestrator"
+          Effect = "Allow"
+          Action = ["lambda:InvokeFunction"]
+          Resource = [
+            "arn:aws:lambda:${var.aws_region}:*:function:${var.app_name}-ci-orchestrator",
+            "arn:aws:lambda:${var.aws_region}:*:function:${var.app_name}-ci-orchestrator:*",
+          ]
+        },
+      ]
     }
 
     conversation = {

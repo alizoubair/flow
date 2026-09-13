@@ -54,7 +54,10 @@ resource "aws_lambda_function" "main" {
   timeout          = each.value.timeout
   memory_size      = each.value.memory_size
 
-  layers = each.value.layer_arn != null ? [each.value.layer_arn] : []
+  layers = compact(concat(
+    each.value.layer_arn != null ? [each.value.layer_arn] : [],
+    lookup(each.value, "extra_layer_arns", []),
+  ))
 
   environment {
     variables = each.value.env_vars

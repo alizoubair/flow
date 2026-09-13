@@ -27,6 +27,92 @@ resource "aws_iam_role_policy_attachment" "basic" {
 
 # Inline policy per group: CloudWatch logs + DynamoDB access + any extra statements
 
+# CI runner MicroVM execution role
+#
+# Assumed by each MicroVM instance at runtime (passed as executionRoleArn to
+# run_microvm). The MicroVM uses this role to read/write S3 artifacts, push
+# WebSocket logs, checkpoint DynamoDB, and signal durable step completion.
+
+data "aws_iam_policy_document" "ci_runner_assume_role" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "ci_runner" {
+  name               = "${var.app_name}-ci-runner-role"
+  assume_role_policy = data.aws_iam_policy_document.ci_runner_assume_role.json
+}
+
+resource "aws_iam_role_policy" "ci_runner" {
+  name = "${var.app_name}-ci-runner-policy"
+  role = aws_iam_role.ci_runner.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "Logs"
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:${var.aws_region}:*:log-group:/aws/lambda-microvms/${var.app_name}-ci-runner:*"
+      },
+      {
+        Sid      = "CiRunsCheckpoint"
+        Effect   = "Allow"
+        Action   = ["dynamodb:GetItem", "dynamodb:UpdateItem"]
+        Resource = var.ci_runs_table_arn
+      },
+      {
+        Sid      = "ArtifactsReadWrite"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "${var.ci_artifacts_bucket_arn}/runs/*"
+      },
+      {
+        Sid      = "ReadRunnerSource"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = "arn:aws:s3:::${var.source_s3_bucket}/${local.runner_s3_key}"
+      },
+      {
+        Sid      = "ArtifactsList"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = var.ci_artifacts_bucket_arn
+      },
+      {
+        Sid      = "WebSocketPush"
+        Effect   = "Allow"
+        Action   = ["execute-api:ManageConnections"]
+        Resource = "${var.ws_api_execution_arn}/*"
+      },
+      {
+        Sid    = "DurableCallback"
+        Effect = "Allow"
+        Action = [
+          "lambda:SendDurableExecutionCallbackSuccess",
+          "lambda:SendDurableExecutionCallbackFailure",
+        ]
+        Resource = "*"
+      },
+      {
+        Sid      = "GitSecret"
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = var.git_secret_arn
+      },
+    ]
+  })
+}
+
+# Group-based Lambda inline policies
+
 resource "aws_iam_role_policy" "lambda" {
   for_each = local.lambda_groups
   name     = "${var.app_name}-${each.key}-lambda-policy"

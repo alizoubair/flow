@@ -75,3 +75,44 @@ variable "conversations_table_arn" {
   description = "ARN of the DynamoDB conversations table"
   type        = string
 }
+
+variable "ci_runs_table_name" {
+  description = "Name of the DynamoDB CI runs table"
+  type        = string
+}
+
+variable "ci_runs_table_arn" {
+  description = "ARN of the DynamoDB CI runs table"
+  type        = string
+}
+
+variable "ci_artifacts_bucket_name" {
+  description = "S3 bucket name for CI runner inter-stage artifact transit"
+  type        = string
+}
+
+variable "ci_artifacts_bucket_arn" {
+  description = "S3 bucket ARN for CI runner inter-stage artifact transit"
+  type        = string
+}
+
+variable "source_s3_bucket" {
+  description = "S3 bucket name used to store CodeBuild source zips"
+  type        = string
+}
+
+variable "account_id" {
+  description = "AWS account ID — used to compute MicroVM image ARN"
+  type        = string
+}
+
+variable "aws_profile" {
+  description = "AWS CLI profile used in local-exec provisioners"
+  type        = string
+  default     = ""
+}
+
+variable "git_secret_arn" {
+  description = "Secrets Manager ARN for GitHub token — injected into runner MicroVM env"
+  type        = string
+}
