@@ -346,19 +346,39 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             const id = `pipeline-${Date.now()}`;
             initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
 
+            // Extract runner_stages and repo_url from the raw agent JSON
+            let runnerStages: any[] = [];
+            let repoUrl = '';
+            try {
+              const raw = JSON.parse(resultText);
+              runnerStages = raw.runner_stages || [];
+              repoUrl = raw.repo_url || '';
+            } catch {}
+
             // Save generated pipeline to database if user is authenticated
             const isAuth = authService.isAuthenticated();
-            console.log('[AgentPanel] isAuthenticated:', isAuth);
             if (isAuth) {
-              console.log('[AgentPanel] Saving pipeline:', {name: pipeline.name, nodes: pipeline.nodes.length, edges: pipeline.edges.length});
               pipelineApi.create({
                 name: pipeline.name,
                 description: prompt.trim().substring(0, 100),
                 nodes: pipeline.nodes,
                 edges: pipeline.edges,
               })
-                .then(result => console.log('[AgentPanel] Pipeline saved successfully:', result.id))
-                .catch(err => console.error('[AgentPanel] Failed to save generated pipeline:', err));
+                .then(result => {
+                  // Persist runner_stages and repo_url so the CI runner can execute
+                  if (runnerStages.length > 0 || repoUrl) {
+                    return pipelineApi.update(result.id, {
+                      name: pipeline.name,
+                      nodes: pipeline.nodes,
+                      edges: pipeline.edges,
+                      runner_stages: runnerStages,
+                      repo_url: repoUrl,
+                    });
+                  }
+                  return result;
+                })
+                .then(result => console.log('[AgentPanel] Pipeline saved:', result?.id))
+                .catch(err => console.error('[AgentPanel] Failed to save pipeline:', err));
             }
           }
 
