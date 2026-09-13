@@ -387,9 +387,14 @@ const Header: React.FC = () => {
                         </div>
                       )}
                       <div className="menu-divider" />
-                      <button className="pipeline-dropdown-item" onClick={() => {
+                      <button className="pipeline-dropdown-item" onClick={async () => {
                         setShowPipelinesList(false);
-                        navigate('/');
+                        try {
+                          const pipeline = await pipelineApi.create();
+                          navigate(`/canvas/pipelines/${pipeline.id}`);
+                        } catch {
+                          navigate('/');
+                        }
                       }}>
                         <Plus size={14} />
                         <span>New Pipeline</span>
