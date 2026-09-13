@@ -232,6 +232,7 @@ const CanvasPage: React.FC = () => {
   const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
 
   const [runPanelOpen, setRunPanelOpen] = useState(false);
+
   const showConfig = !agentOpen && !runPanelOpen && !!selectedNode;
 
   return (
@@ -246,6 +247,8 @@ const CanvasPage: React.FC = () => {
           edgeStyle={edgeStyle}
           isRunning={isRunning}
           runStatus={activeRun?.status}
+          runPanelOpen={runPanelOpen}
+          onToggleOutput={() => setRunPanelOpen(prev => !prev)}
           onModeChange={setCanvasMode}
           onDelete={handleDelete}
           onToggleComponents={() => setComponentsOpen(prev => !prev)}
@@ -268,8 +271,8 @@ const CanvasPage: React.FC = () => {
               <AgentPanel onClose={() => setAgentOpen(false)} />
             </div>
           )}
-          {runPanelOpen && activeRun && (
-            <RunPanel run={activeRun} onClose={() => setRunPanelOpen(false)} />
+          {runPanelOpen && (
+            <RunPanel run={activeRun ?? undefined} onClose={() => setRunPanelOpen(false)} />
           )}
           {showConfig && <ConfigPanel selectedNode={selectedNode} />}
         </div>
