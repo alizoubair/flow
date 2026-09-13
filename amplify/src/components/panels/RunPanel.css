@@ -1,0 +1,250 @@
+.run-panel {
+  display: flex;
+  flex-direction: column;
+  /* width is set inline via JS drag-to-resize */
+  min-width: 280px;
+  max-width: 700px;
+  height: 100%;
+  position: relative;
+  background: var(--bg-primary, #fff);
+  border-left: 1px solid var(--border-color, #e5e7eb);
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+/* ─── Resize handle ─────────────────────────────────────────────────────── */
+
+.rp-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  cursor: ew-resize;
+  z-index: 10;
+  transition: background 0.15s;
+}
+
+.rp-resize-handle:hover,
+.rp-resize-handle:active {
+  background: #e5e7eb;
+}
+
+body.dark-theme .rp-resize-handle:hover,
+body.dark-theme .rp-resize-handle:active {
+  background: #374151;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.rp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.rp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.rp-badge.running  { background: #dbeafe; color: #1d4ed8; }
+.rp-badge.completed { background: #dcfce7; color: #15803d; }
+.rp-badge.failed   { background: #fee2e2; color: #b91c1c; }
+
+.rp-elapsed {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-muted, #9ca3af);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted, #9ca3af);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.rp-close:hover {
+  color: var(--text-primary, #111827);
+  background: var(--bg-hover, #f3f4f6);
+}
+
+/* ─── Stages ─────────────────────────────────────────────────────────────── */
+
+.rp-stages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.rp-stages::-webkit-scrollbar { width: 4px; }
+.rp-stages::-webkit-scrollbar-thumb { background: var(--border-color, #e5e7eb); border-radius: 2px; }
+
+.rp-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 14px;
+  color: var(--text-muted, #9ca3af);
+}
+
+.rp-stage {
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+}
+
+.rp-stage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary, #111827);
+  transition: background 0.1s;
+}
+
+.rp-stage-row:hover {
+  background: var(--bg-hover, #f9fafb);
+}
+
+.rp-stage-name {
+  flex: 1;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.rp-stage-dur {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, #9ca3af);
+  font-size: 11px;
+  min-width: 28px;
+  text-align: right;
+}
+
+.rp-chevron {
+  color: var(--text-muted, #9ca3af);
+  flex-shrink: 0;
+}
+
+/* ─── Logs ───────────────────────────────────────────────────────────────── */
+
+.rp-logs {
+  background: #0f1117;
+  padding: 8px 0;
+  border-top: 1px solid #1e2130;
+}
+
+.rp-logs-waiting {
+  display: block;
+  padding: 6px 14px;
+  color: #6b7db3;
+  font-size: 11px;
+}
+
+.rp-step {
+  padding: 4px 0;
+}
+
+.rp-step-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 14px;
+  color: #c9d1e8;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.rp-exit-code {
+  margin-left: auto;
+  font-size: 10px;
+  color: #f87171;
+  font-family: monospace;
+}
+
+.rp-step-output {
+  margin: 2px 0 6px;
+  padding: 4px 14px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #8b9dc8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.rp-step.failed .rp-step-output { color: #fca5a5; }
+.rp-step.completed .rp-step-output { color: #8b9dc8; }
+
+/* ─── Status icons ───────────────────────────────────────────────────────── */
+
+.rp-icon.completed { color: #22c55e; }
+.rp-icon.failed    { color: #ef4444; }
+.rp-icon.running   { color: #3b82f6; animation: spin 1s linear infinite; }
+.rp-icon.pending   { color: #d1d5db; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+
+.rp-footer {
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  flex-shrink: 0;
+}
+
+.rp-footer.completed { color: #15803d; background: #f0fdf4; }
+.rp-footer.failed    { color: #b91c1c; background: #fef2f2; }
+
+/* ─── Dark theme ─────────────────────────────────────────────────────────── */
+
+body.dark-theme .run-panel {
+  background: #161b27;
+  border-left-color: #1e2539;
+}
+
+body.dark-theme .rp-header,
+body.dark-theme .rp-stage {
+  border-color: #1e2539;
+}
+
+body.dark-theme .rp-stage-row:hover { background: #1a2030; }
+body.dark-theme .rp-stage-row       { color: #dce8ff; }
+body.dark-theme .rp-close:hover     { background: #1a2030; color: #dce8ff; }
+body.dark-theme .rp-icon.pending    { color: #374151; }
+
+body.dark-theme .rp-badge.running   { background: #1e3a5f; color: #93c5fd; }
+body.dark-theme .rp-badge.completed { background: #14532d; color: #86efac; }
+body.dark-theme .rp-badge.failed    { background: #450a0a; color: #fca5a5; }
+
+body.dark-theme .rp-footer.completed { background: #14532d22; color: #86efac; border-color: #1e2539; }
+body.dark-theme .rp-footer.failed    { background: #450a0a22; color: #fca5a5; border-color: #1e2539; }
