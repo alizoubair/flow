@@ -1,6 +1,6 @@
-# Flow Platform
+# <img src="docs/flow-icon.png" alt="Flow" width="32" valign="middle" /> Flow
 
-**A low-code tool for creating, configuring, and running interactive CI/CD pipelines, with AI-assisted generation, export to major CI platforms, and ephemeral execution via AWS Lambda MicroVMs.**
+**A low-code tool for generating, running and exporting CI/CD pipelines — Bedrock agents, durable Lambda execution and ephemeral Lambda MicroVM runners.**
 
 Users design pipelines on a visual canvas or describe them in natural language. A multi-agent backend on **Amazon Bedrock AgentCore** analyzes repositories, generates pipelines, validates them, and exports platform-specific config files. Pipelines can also be run directly inside Flow using isolated **Lambda MicroVM** runners.
 
