@@ -40,11 +40,11 @@ Agent source code and Gateway tool Lambdas live under [`../../agentcore/`](../..
 | Module | Description |
 |---|---|
 | `amplify` | Amplify Hosting app with CRA build spec and SPA rewrite rules |
-| `s3` | Terraform state bucket, artifacts bucket, DynamoDB lock table |
-| `dynamodb` | Pipelines, WebSocket connections, and conversations tables |
+| `s3` | Terraform state bucket, agent artifacts bucket, CI runner artifacts bucket |
+| `dynamodb` | Pipelines, WebSocket connections, conversations, and CI runs tables |
 | `cognito` | User Pool, Hosted UI, Google/GitHub OAuth, **Gateway M2M client** |
 | `apigateway` | HTTP API (pipeline + conversation CRUD) + WebSocket API |
-| `lambda` | WebSocket handlers, pipeline CRUD, conversation handlers, shared layer |
+| `lambda` | WebSocket handlers, pipeline CRUD (+ run trigger), conversation handlers, CI orchestrator Lambda, MicroVM image build pipeline |
 | `gateway-lambda-tool` | Package and deploy one MCP tool Lambda (one module instance per domain) |
 | `observability` | APPLICATION_LOGS + TRACES delivery for AgentCore resources |
 | `agentcore/runtime` | Bedrock AgentCore Runtime with ECR, CodeBuild, IAM, ADOT env |
@@ -234,6 +234,10 @@ After `apply`, useful outputs include:
 | `artifacts_bucket_name` | S3 bucket for agent source zips and artifacts |
 | `ecr_repository_url` | ECR repository for orchestrator container |
 | `codebuild_project_name` | CodeBuild project for orchestrator image builds |
+| `ci_runs_table_name` | DynamoDB table for CI pipeline run state |
+| `ci_artifacts_bucket_name` | S3 bucket for CI runner inter-stage artifacts |
+| `ci_orchestrator_function_name` | CI orchestrator Lambda (durable execution) |
+| `ci_runner_image_arn` | Lambda MicroVM image ARN for the CI runner |
 | `amplify_app_id` | Amplify app ID |
 | `amplify_app_url` | Hosted frontend URL (`https://main.{domain}.amplifyapp.com`) |
 | `amplify_default_domain` | Amplify domain suffix for branch URLs |

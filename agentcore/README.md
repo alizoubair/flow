@@ -101,6 +101,25 @@ Gateway + tool Lambdas:
 terraform apply -target=module.source_control_tool -target=module.gateway
 ```
 
+## Pipeline generation and CI runner integration
+
+The `pipeline-gen` agent now includes `repo_url` and `runner_stages` in its output alongside the canvas-ready `stages`/`edges`. These fields enable the CI runner to clone the repo and execute steps directly.
+
+The orchestrator passes `repo_url` to `generate_pipeline` after calling `analyze_repository`:
+
+```python
+# agent_tools.py
+generate_pipeline(repo_analysis=analysis, repo_url="https://github.com/user/repo")
+```
+
+`runner_stages` is a flat step format derived from the canvas stages:
+
+```json
+[{ "name": "build", "steps": [{ "name": "Install", "run": "npm ci" }] }]
+```
+
+Both fields are saved to DynamoDB by the frontend and read by the CI orchestrator when a run is triggered.
+
 ## Per-agent documentation
 
 - [orchestrator](agents/orchestrator/README.md)
