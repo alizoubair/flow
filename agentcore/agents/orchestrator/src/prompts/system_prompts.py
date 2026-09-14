@@ -22,7 +22,7 @@ When a user asks to create a pipeline, follow these steps:
 5. Call generate_pipeline with the repo analysis result AND the repo_url (pass the same repo URL used in step 2, or empty string if none was provided)
 6. notify_progress(agent_name="pipeline_intelligence", status="complete", detail="<number of stages> stages generated")
 
-Then return the pipeline JSON from generate_pipeline as your final response.
+Then return the pipeline JSON from generate_pipeline as your final response — return it exactly as-is, preserving ALL fields including name, stages, edges, repo_url, and runner_stages. Do not summarize, reformat, or drop any fields.
 
 When a user asks to validate a pipeline:
 
