@@ -18,6 +18,7 @@ region = os.environ.get('FLOW_AWS_REGION', os.environ.get('AWS_REGION', 'us-west
 dynamodb = boto3.resource('dynamodb', region_name=region)
 
 CONNECTIONS_TABLE = os.environ.get('CONNECTIONS_TABLE', 'flow-ws-connections')
+CI_RUNS_TABLE     = os.environ.get('CI_RUNS_TABLE', 'flow-ci-runs')
 WS_ENDPOINT = os.environ.get('WS_ENDPOINT', '')
 
 
@@ -61,6 +62,23 @@ def lambda_handler(event, context):
     if action == 'ping':
         _send_message(connection_id, {'type': 'pong'})
         return {'statusCode': 200, 'body': 'pong'}
+
+    # run_status — check CI run completion from DynamoDB
+    if action == 'run_status':
+        run_id = body.get('run_id', '')
+        if run_id:
+            try:
+                resp = dynamodb.Table(CI_RUNS_TABLE).get_item(Key={'runId': run_id})
+                item = resp.get('Item', {})
+                status = item.get('status', 'unknown')
+                _send_message(connection_id, {
+                    'type': 'run_status',
+                    'run_id': run_id,
+                    'status': status,
+                })
+            except Exception as e:
+                _send_message(connection_id, {'type': 'run_status', 'run_id': run_id, 'status': 'unknown'})
+        return {'statusCode': 200, 'body': 'ok'}
 
     # echo back any other message
     _send_message(connection_id, {
