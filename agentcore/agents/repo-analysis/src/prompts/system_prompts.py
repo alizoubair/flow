@@ -35,8 +35,11 @@ Return a JSON object with this exact structure:
   "ci_platform": "github_actions|gitlab_ci|azure_devops|jenkins|none",
   "deploy_targets": ["aws", "azure", "gcp", "docker", "kubernetes"],
   "detected_files": ["package.json", "Dockerfile", ...],
+  "available_scripts": ["test", "lint", "build", "start"],
   "summary": "Brief one-line description of the project stack"
 }
+
+The `available_scripts` field must list the EXACT script names from the package.json `scripts` section (or equivalent for other package managers). Only include scripts that actually exist in the file.
 
 Return ONLY the JSON object, no markdown fences, no explanation.
 """.strip()
