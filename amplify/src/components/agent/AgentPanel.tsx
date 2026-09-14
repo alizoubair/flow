@@ -10,6 +10,7 @@ import { pipelineApi } from '../../services/api';
 import { authService } from '../../services/auth';
 import { parsePipelineToReactFlow } from '../../services/pipelineParser';
 import { usePipelineStore } from '../../store/pipelineStore';
+import { v4 as uuidv4 } from 'uuid';
 import './AgentPanel.css';
 
 interface AgentStep {
@@ -343,7 +344,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
               stageTypes: pipeline.nodes.map(n => n.data.label as string),
             };
             const { initPipeline } = usePipelineStore.getState();
-            const id = `pipeline-${Date.now()}`;
+            const id = uuidv4();
             initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
 
             // Extract runner_stages and repo_url from the raw agent JSON
@@ -365,6 +366,9 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
                 edges: pipeline.edges,
               })
                 .then(result => {
+                  // Sync store and URL to the server-assigned ID
+                  usePipelineStore.getState().setPipelineId(result.id);
+                  navigate(`/canvas/pipelines/${result.id}`, { replace: true });
                   // Persist runner_stages and repo_url so the CI runner can execute
                   if (runnerStages.length > 0 || repoUrl) {
                     return pipelineApi.update(result.id, {
