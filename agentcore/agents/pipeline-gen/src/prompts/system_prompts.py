@@ -47,6 +47,10 @@ Use these stage types (also valid as task types):
 - Generate stages appropriate for the detected tech stack.
 - EVERY stage must have at least one task; every task must have a non-empty
   commands list.
+- ONLY use scripts that exist in the repo. If the analysis includes
+  `available_scripts`, restrict commands to those exact script names
+  (e.g. if "format:check" is not in available_scripts, do not generate
+  `npm run format:check`). When in doubt, omit a step rather than guess.
 - Split independent work into parallel tasks within a single stage (e.g. lint,
   unit tests, and type-checking can be parallel tasks in one "test" stage).
 - Keep build and deploy tasks sequential (parallel=false).

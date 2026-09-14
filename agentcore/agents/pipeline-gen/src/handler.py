@@ -46,8 +46,9 @@ def handler(payload: dict, context) -> str:
     Returns:
         JSON string with the generated pipeline (stages + edges)
     """
-    analysis = payload.get('analysis') or payload.get('task') or {}
-    repo_url = payload.get('repo_url', '')
+    task = payload.get('task') or payload
+    analysis = task.get('analysis') or task
+    repo_url = task.get('repo_url', '') or payload.get('repo_url', '')
 
     if not analysis:
         return json.dumps({'error': 'analysis is required'})
