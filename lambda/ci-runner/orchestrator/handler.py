@@ -176,8 +176,11 @@ def lambda_handler(event: dict, context: DurableContext) -> dict:
     connection_id = event.get("connection_id", "")
     run_id        = event.get("run_id") or str(uuid.uuid4())
 
+    logger.info(f"[run:{run_id}] Starting pipeline_id={pipeline_id} user={user_id} connection={connection_id[:12] if connection_id else 'none'}")
+
     pipeline = _load_pipeline(pipeline_id, user_id)
     if not pipeline:
+        logger.error(f"[run:{run_id}] Pipeline not found: {pipeline_id}")
         _ws_send(connection_id, {"type": "error", "message": "Pipeline not found"})
         return {"status": "error"}
 
@@ -185,7 +188,10 @@ def lambda_handler(event: dict, context: DurableContext) -> dict:
     _write_run_record(run_id, pipeline_id, user_id, "running")
 
     runner_stages = pipeline.get("runner_stages") or []
+    logger.info(f"[run:{run_id}] runner_stages count={len(runner_stages)} pipeline_keys={list(pipeline.keys())}")
+
     if not runner_stages:
+        logger.error(f"[run:{run_id}] No runner_stages — pipeline has no executable steps")
         _ws_send(connection_id, {
             "type": "error",
             "message": "Pipeline has no runner stages. Re-generate the pipeline with a GitHub URL.",
@@ -196,8 +202,10 @@ def lambda_handler(event: dict, context: DurableContext) -> dict:
 
     vm = None
     try:
+        logger.info(f"[run:{run_id}] Launching MicroVM image={IMAGE_URI}")
         # Launch ONE MicroVM for the entire pipeline
         vm = context.step(launch_microvm(run_id))
+        logger.info(f"[run:{run_id}] MicroVM launched microvm_id={vm.get('microvm_id')} endpoint={vm.get('endpoint')}")
 
         context.wait_for_condition(
             check=poll_microvm_state,
@@ -244,6 +252,7 @@ def lambda_handler(event: dict, context: DurableContext) -> dict:
         return {"status": "completed"}
 
     except Exception as e:
+        logger.error(f"[run:{run_id}] Pipeline failed: {e}", exc_info=True)
         if vm:
             context.step(terminate_microvm(vm["microvm_id"]))
         _update_run_status(run_id, "failed")
