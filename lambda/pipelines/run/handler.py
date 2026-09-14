@@ -55,6 +55,10 @@ def lambda_handler(event, context):
         run_id        = str(uuid4())
         connection_id = _get_connection_id(user_id)
 
+        pipeline_item = existing['Item']
+        runner_stages = pipeline_item.get('runner_stages') or []
+        print(f'[pipeline-run] run={run_id} pipeline={pipeline_id} user={user_id} runner_stages={len(runner_stages)} connection={connection_id[:12] if connection_id else "none"}')
+
         lambda_client.invoke(
             FunctionName=CI_ORCHESTRATOR_FUNCTION,
             InvocationType='Event',
