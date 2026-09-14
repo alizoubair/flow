@@ -41,10 +41,14 @@ def call_agent(runtime_arn: str, task: dict, user_id: str, session_id: str) -> d
         },
     }
 
+    # Use a unique session per sub-agent call to prevent session state contamination
+    # between the orchestrator and sub-agents — shared sessions cause 0ms empty responses.
+    sub_session_id = f"{session_id}_{uuid.uuid4().hex[:8]}"
+
     try:
         response = _client.invoke_agent_runtime(
             agentRuntimeArn=runtime_arn,
-            runtimeSessionId=session_id,
+            runtimeSessionId=sub_session_id,
             runtimeUserId=user_id,
             payload=json.dumps(payload).encode('utf-8'),
         )
@@ -56,7 +60,6 @@ def call_agent(runtime_arn: str, task: dict, user_id: str, session_id: str) -> d
             raw = raw.read()
         response_body = raw.decode('utf-8') if isinstance(raw, bytes) else (raw or '')
 
-        # Try to parse as JSON
         try:
             return json.loads(response_body)
         except (json.JSONDecodeError, TypeError):
