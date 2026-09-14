@@ -49,12 +49,12 @@ def call_agent(runtime_arn: str, task: dict, user_id: str, session_id: str) -> d
             payload=json.dumps(payload).encode('utf-8'),
         )
 
-        # Read the response
-        response_body = response.get('body', response.get('payload', b''))
-        if hasattr(response_body, 'read'):
-            response_body = response_body.read()
-        if isinstance(response_body, bytes):
-            response_body = response_body.decode('utf-8')
+        # invoke_agent_runtime returns the content under 'response' (streaming),
+        # not 'body' or 'payload' — matches how the WebSocket orchestrator reads it.
+        raw = response.get('response') or response.get('body') or response.get('payload', b'')
+        if hasattr(raw, 'read'):
+            raw = raw.read()
+        response_body = raw.decode('utf-8') if isinstance(raw, bytes) else (raw or '')
 
         # Try to parse as JSON
         try:
