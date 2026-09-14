@@ -96,6 +96,12 @@ resource "aws_iam_role_policy" "ci_orchestrator" {
         Action   = ["iam:PassRole"]
         Resource = aws_iam_role.ci_runner.arn
       },
+      {
+        Sid    = "SsmRunnerHash"
+        Effect = "Allow"
+        Action = ["ssm:GetParameter", "ssm:PutParameter"]
+        Resource = "arn:aws:ssm:${var.aws_region}:*:parameter/flow/ci-runner/*"
+      },
     ]
   })
 }

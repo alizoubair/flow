@@ -68,10 +68,36 @@ def handler(event, context):
         image_arn  = event['image_arn']
         max_wait_s = event.get('max_wait_s', 840)
 
-        # Determine whether to create or update
+        source_hash = event.get('source_hash', '')
+        ssm = boto3.client('ssm', region_name=region)
+        ssm_key = f"/flow/ci-runner/built-source-hash"
+
+        # Check current image state using GetMicrovmImage (official API states: CREATED, UPDATED, *_FAILED)
+        READY_STATES = ('CREATED', 'UPDATED')
         try:
-            client.get_microvm_image(imageIdentifier=image_arn)
+            img = client.get_microvm_image(imageIdentifier=image_arn)
+            img_state   = img.get('state', '')
+            img_version = img.get('latestActiveImageVersion', '')
             exists = True
+
+            if img_state in READY_STATES and img_version:
+                if source_hash:
+                    try:
+                        built_hash = ssm.get_parameter(Name=ssm_key)['Parameter']['Value']
+                        if built_hash == source_hash:
+                            print(f"Image already up-to-date (hash={source_hash[:8]}) — skipping rebuild.")
+                            return json.loads(json.dumps({'imageArn': image_arn, 'state': img_state, 'version': img_version}, default=_s))
+                        # SSM hash differs — source changed, fall through to rebuild
+                    except Exception:
+                        # No SSM record — image is ready, store hash and skip rebuild
+                        print(f"Image ready (state={img_state} v{img_version}), no prior hash — storing and skipping rebuild.")
+                        try:
+                            ssm.put_parameter(Name=ssm_key, Value=source_hash, Type='String', Overwrite=True)
+                        except Exception as ex:
+                            print(f"  Warning SSM: {ex}")
+                        return json.loads(json.dumps({'imageArn': image_arn, 'state': img_state, 'version': img_version}, default=_s))
+                else:
+                    return json.loads(json.dumps({'imageArn': image_arn, 'state': img_state, 'version': img_version}, default=_s))
         except Exception as e:
             if 'not found' not in str(e).lower() and 'ResourceNotFoundException' not in type(e).__name__:
                 raise
@@ -94,24 +120,24 @@ def handler(event, context):
                 codeArtifact={'uri': event['code_uri']},
             )
 
-        # Poll the latest image version state (not overall image state)
+        # Poll the image state using get_microvm_image
         deadline = time.time() + max_wait_s
         while time.time() < deadline:
             time.sleep(20)
-            versions = client.list_microvm_image_versions(imageIdentifier=image_arn)
-            items = versions.get('items', [])
-            if items:
-                latest = sorted(items, key=lambda v: v.get('createdAt', ''), reverse=True)[0]
-                state = latest.get('state', 'UNKNOWN')
-                version = latest.get('imageVersion', '?')
-                print(f"  latest version={version} state={state}")
-                if state in ('ACTIVE', 'CREATED'):
-                    print(f"Image {image_arn} v{version} is ready.")
-                    return json.loads(json.dumps({'imageArn': image_arn, 'state': state, 'version': version}, default=_s))
-                if state in ('FAILED', 'CREATE_FAILED'):
-                    raise Exception(f"Image version {version} build FAILED: {json.dumps(latest, default=_s)}")
-            else:
-                print("  no versions found yet, waiting...")
+            resp = client.get_microvm_image(imageIdentifier=image_arn)
+            state = resp.get('state', 'UNKNOWN')
+            version = resp.get('latestActiveImageVersion', '?')
+            print(f"  image state={state} latestActiveVersion={version}")
+            if state in READY_STATES and version not in ('?', None, ''):
+                print(f"Image {image_arn} is ready (state={state} v{version}).")
+                if source_hash:
+                    try:
+                        ssm.put_parameter(Name=ssm_key, Value=source_hash, Type='String', Overwrite=True)
+                    except Exception as ex:
+                        print(f"  Warning SSM: {ex}")
+                return json.loads(json.dumps({'imageArn': image_arn, 'state': state, 'version': version}, default=_s))
+            if state in ('CREATE_FAILED', 'UPDATE_FAILED'):
+                raise Exception(f"Image build FAILED (state={state})")
 
         raise Exception(f"Timeout waiting for image {image_arn} to become ACTIVE.")
 
