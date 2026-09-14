@@ -161,6 +161,26 @@ const CanvasPage: React.FC = () => {
             };
           }
 
+          case 'run_status': {
+            if (!prev) return prev;
+            if (msg.status === 'completed') {
+              const expected = new Set(prev.expectedStages || []);
+              return {
+                ...prev,
+                status: 'completed' as const,
+                duration: Date.now() - prev.startedAt,
+                stages: prev.stages.map(s => ({
+                  ...s,
+                  status: expected.has(s.name) ? 'completed' as const : s.status,
+                })),
+              };
+            }
+            if (msg.status === 'failed') {
+              return { ...prev, status: 'failed' as const, duration: Date.now() - prev.startedAt };
+            }
+            return prev;
+          }
+
           case 'pipeline_complete': {
             if (!prev) return prev;
             const expected = new Set(prev.expectedStages || []);
@@ -195,6 +215,17 @@ const CanvasPage: React.FC = () => {
       });
     });
   }, []);
+
+  // Poll run status every 15s while a run is active — recovers from dropped WebSocket
+  useEffect(() => {
+    if (!activeRun || activeRun.status !== 'running') return;
+    const interval = setInterval(() => {
+      if (wsService.isConnected()) {
+        wsService.send({ action: 'run_status', run_id: activeRun.runId });
+      }
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [activeRun?.runId, activeRun?.status]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

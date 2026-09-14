@@ -347,14 +347,24 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
             const id = uuidv4();
             initPipeline(id, pipeline.name, pipeline.nodes, pipeline.edges);
 
-            // Extract runner_stages and repo_url from the raw agent JSON
-            let runnerStages: any[] = [];
-            let repoUrl = '';
-            try {
-              const raw = JSON.parse(resultText);
-              runnerStages = raw.runner_stages || [];
-              repoUrl = raw.repo_url || '';
-            } catch {}
+            // Extract runner_stages and repo_url from parsedResult (already parsed above).
+            let runnerStages: any[] = parsedResult?.runner_stages || [];
+            let repoUrl: string = parsedResult?.repo_url || '';
+            // Compute runner_stages from stages when the orchestrator omits the field.
+            if (runnerStages.length === 0 && Array.isArray(parsedResult?.stages)) {
+              runnerStages = parsedResult.stages
+                .map((s: any) => {
+                  const name = (s.label || s.name || s.id || 'stage').toLowerCase().replace(/\s+/g, '-');
+                  const fromTasks = (s.tasks || [])
+                    .filter((t: any) => Array.isArray(t.commands) && t.commands.length > 0)
+                    .map((t: any) => ({ name: t.name, run: t.commands.join(' && ') }));
+                  const fromCommands = Array.isArray(s.commands) && s.commands.length > 0
+                    ? [{ name, run: s.commands.join(' && ') }]
+                    : [];
+                  return { name, steps: fromTasks.length > 0 ? fromTasks : fromCommands };
+                })
+                .filter((s: any) => s.steps.length > 0);
+            }
 
             // Save generated pipeline to database if user is authenticated
             const isAuth = authService.isAuthenticated();
@@ -507,16 +517,21 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         : s),
     }));
 
-    // Use the original pipeline result from generation — strip markdown fences
-    let pipelineResult = activeRun.result || '';
-    const cleaned = pipelineResult.trim();
-    if (cleaned.startsWith('```')) {
-      pipelineResult = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
-    }
-    // Also unwrap if double-encoded
-    if (pipelineResult.startsWith('"') && pipelineResult.endsWith('"')) {
-      try { pipelineResult = JSON.parse(pipelineResult); } catch {}
-    }
+    // Build pipeline from the store — avoids sending stale text (e.g. validation result)
+    const { currentPipeline, nodes, edges } = usePipelineStore.getState();
+    const stageNodes = nodes.filter(n => n.type === 'stageNode');
+    const pipeline = {
+      name: currentPipeline?.name || 'Pipeline',
+      stages: stageNodes.map(n => ({
+        id: n.id,
+        name: n.data.stageName,
+        type: n.data.stageName,
+        tasks: nodes
+          .filter(t => t.type === 'taskNode' && t.parentId === n.id)
+          .map(t => ({ name: t.data.name, type: t.data.type, commands: t.data.commands, parallel: t.data.parallel })),
+      })),
+      edges: edges.map(e => ({ source: e.source, target: e.target })),
+    };
 
     // Send export request via WebSocket
     try {
@@ -524,7 +539,7 @@ const AgentPanel: React.FC<AgentPanelProps> = ({ onClose }) => {
         action: 'orchestrator',
         operation: 'execute_pipeline',
         payload: {
-          prompt: `Export this pipeline to ${target} format:\n${pipelineResult}`,
+          prompt: `Export this pipeline to ${target} format:\n${JSON.stringify(pipeline)}`,
           export: true,
           target,
         },

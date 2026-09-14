@@ -157,7 +157,7 @@ const RunPanel: React.FC<RunPanelProps> = ({ run, onClose }) => {
 
       {/* Stages */}
       {run && <div className="rp-stages">
-        {run.stages.length === 0 && (
+        {run.stages.length === 0 && run.status === 'running' && (
           <div className="rp-empty">
             <Loader size={14} className="rp-icon running" />
             <span>Waiting for first stage…</span>
